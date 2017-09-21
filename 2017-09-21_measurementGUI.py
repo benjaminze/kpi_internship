@@ -25,10 +25,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         
     def Main(self):
-        '''Trigger scan for instruments
-        
-        Deep informtion
+        '''Important information about this function
         '''
+        #Trigger scan for instruments
         self.scan_instruments_button.clicked.connect(self.ScanForInstruments)
         self.scan_instruments_button.clicked.connect(self.SetDefaultValues)
         
