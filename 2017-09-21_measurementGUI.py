@@ -26,6 +26,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
     def Main(self):
         '''Important information about this function
+
  
         '''
         #Trigger scan for instruments
