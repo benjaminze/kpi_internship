@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1117</width>
-    <height>592</height>
+    <width>1222</width>
+    <height>601</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -184,16 +184,6 @@
      <string>Number of measurements</string>
     </property>
    </widget>
-   <widget class="QTextEdit" name="measurement_data_textBox">
-    <property name="geometry">
-     <rect>
-      <x>650</x>
-      <y>240</y>
-      <width>341</width>
-      <height>251</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_6">
     <property name="geometry">
      <rect>
@@ -260,13 +250,92 @@
      <string>Get Device IDN:</string>
     </property>
    </widget>
+   <widget class="QTableWidget" name="measurement_data_table">
+    <property name="geometry">
+     <rect>
+      <x>650</x>
+      <y>250</y>
+      <width>521</width>
+      <height>271</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <attribute name="horizontalHeaderCascadingSectionResizes">
+     <bool>true</bool>
+    </attribute>
+    <attribute name="horizontalHeaderDefaultSectionSize">
+     <number>240</number>
+    </attribute>
+    <attribute name="horizontalHeaderMinimumSectionSize">
+     <number>50</number>
+    </attribute>
+    <attribute name="verticalHeaderCascadingSectionResizes">
+     <bool>true</bool>
+    </attribute>
+    <attribute name="verticalHeaderDefaultSectionSize">
+     <number>30</number>
+    </attribute>
+   </widget>
+   <widget class="QPushButton" name="export_data_button">
+    <property name="geometry">
+     <rect>
+      <x>920</x>
+      <y>180</y>
+      <width>261</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Export Data</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>920</x>
+      <y>130</y>
+      <width>101</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Filename:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="filename_lineEdit">
+    <property name="geometry">
+     <rect>
+      <x>1030</x>
+      <y>136</y>
+      <width>151</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1117</width>
+     <width>1222</width>
      <height>31</height>
     </rect>
    </property>

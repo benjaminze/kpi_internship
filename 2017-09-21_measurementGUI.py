@@ -2,6 +2,7 @@ import sys
 from PyQt4 import QtCore, QtGui, uic
 import datetime
 import visa
+import export_to_textfile
 
 
 qtCreatorFile = "measureGUI.ui" # Enter file here.
@@ -21,7 +22,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.integration_time        = 0
         self.idn                     = ''
         self.integration_time_list   = ['0.4',  '4','20', '40','200', '400','2000', '4000']
-        self.nplc_list               = ['0.02','.2','1',  '2',  '10',  '20', '100',  '200']   
+        self.nplc_list               = ['0.02','.2','1',  '2',  '10',  '20', '100',  '200'] 
+        self.filename_lineEdit.setText('my_data')
         
         
     def Main(self):
@@ -44,6 +46,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         # trigger measurement start 
         self.start_measurement_button.clicked.connect(self.StartMeasurement)
+        
+        # export_data_button
+        self.export_data_button.clicked.connect(self.ExportToFile)
         
         
     def ScanForInstruments(self):
@@ -94,33 +99,58 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # write parameters to instrument
         self.instrument.write('ROUT:TERM FRON%d'       % channel)
         self.instrument.write('SENS:VOLT:DC:NPLC %s'   % nplc)    
-        self.instrument.write('SAMP:COUN %d'           % sample_count)
+        
         
         # set timeout        
         self.instrument.timeout = int(sample_count * self.integration_time *2 + 3000)
-       
+      
+        # create table
+        self.measurement_data_table.clearContents()
+        self.measurement_data_table.setColumnCount(2)
+        self.measurement_data_table.setRowCount(sample_count + 1)
+#        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr.' ))
+        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Date'))
+        self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Data on channel %d [V]' %channel))
+
+
+#        self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Date'))
+#        self.measurement_data_table.setItem(0, 2, QtGui.QTableWidgetItem('Data [V]'))
+#        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Channel 2'))
+        
         # START MEASUREMENT
-        measurement_data    = self.instrument.query('READ?')[:-1] .split(',')
+        i = 0   
         
-        # create string for textbox
-        data_to_write    = [0 for i in range(int(sample_count)+2)]
-        data_to_write[0] = 'IDN: '+ self.idn
-        data_to_write[1] = 'All measurement data in [V]'
-        for i in range(len(measurement_data)):
-            data_to_write[i+2] = measurement_data[i]        
+        while i < sample_count:
+            
+            while True:
+                measurement_data    = self.instrument.query('READ?')
+#            self.measurement_data_table.setItem(i + 1, 0, QtGui.QTableWidgetItem(str(i + 1)))
+            
+#            self.filename_lineEdit.setText(measurement_data)
+#            print(datetime.datetime.now(),measurement_data)            
+                self.measurement_data_table.setItem(i + 1, 0, QtGui.QTableWidgetItem(str(datetime.datetime.now())))
+                self.measurement_data_table.setItem(i + 1, 1, QtGui.QTableWidgetItem(measurement_data))
+                
+                break
+#            self.measurement_data_table.show()
+            i += 1
+            
         
-        # print string to textbox
-        data_string = ''        
-        for item in data_to_write:
-            data_string += ('%s\n' %item)
-        self.measurement_data_textBox.setText(data_string)
+
+#        
+
+#            #QtGui.QTextEdit.se
         
         # Set instrumets values to default
         self.instrument.write('ROUT:TERM FRON1')
         self.instrument.write('SENS:VOLT:DC:NPLC MIN')    
-        self.instrument.write('SAMP:COUN MIN')
+#        self.instrument.write('SAMP:COUN MIN')
         self.instrument.timeout = 2000
-       
+        
+#%% Export
+    def ExportToFile(self):
+        print(self.measurement_data_table.getContentsMargins())
+
 #%% main
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
