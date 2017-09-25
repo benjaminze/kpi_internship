@@ -10,9 +10,6 @@ qtCreatorFile = "measureGUI.ui" # Enter file here.
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 
-class  Communicate(QtCore.QObject):
-    callMeasure = QtCore.pyqtSignal()
-
 class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
@@ -28,9 +25,15 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.integration_time_list   = ['0.4',  '4','20', '40','200', '400','2000', '4000']
         self.nplc_list               = ['0.02','.2','1',  '2',  '10',  '20', '100',  '200'] 
         self.filename_lineEdit.setText('my_data')
+        self.sample_count            = 1        
         
-        self.connection123 = Communicate()
-        self.connection123.callMeasure.connect(self.StartMeasurement)
+        # timer 
+        self.timer_counter           = 0
+        self.offset                  = 2000 #[ms]
+        self.timer                   = QtCore.QTimer(self)
+        self.timer.setInterval(self.offset)
+        self.timer.timeout.connect(self.TimerMeasurement)
+
         
         
     def Main(self):
@@ -52,7 +55,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.integration_time_comboBox.activated.connect(self.GetIntegrationTime)
         
         # trigger measurement start 
-        self.start_measurement_button.clicked.connect(self.EventGenerator123)
+        self.start_measurement_button.clicked.connect(self.StartMeasurement)
         
         # export_data_button
         self.export_data_button.clicked.connect(self.ExportToFile)
@@ -95,14 +98,49 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # chosen channel has changed
         self.integration_time = int(self.integration_time_comboBox.currentText())
 
-    def EventGenerator123(self):
-        self.measurement_data_table.clear()
+    
+    def TimerMeasurement(self):
+        
+        
+#        # get measurement parameters 
+#        channel             = self.channel_spinBox.value()
+#        nplc_index          = self.integration_time_comboBox.currentIndex()
+#        nplc                = self.nplc_list[nplc_index] 
+#        self.sample_count   = self.nr_of_measurements_spinBox.value()     
+#        
+#        # write parameters to instrument
+#        self.instrument.write('ROUT:TERM FRON%d'       % channel)
+#        self.instrument.write('SENS:VOLT:DC:NPLC %s'   % nplc)            
+#        
+#        
+        
+        
+        self.timer.setInterval(self.integration_time + self.offset)        
+        measurement_data    = self.instrument.query('READ?')
+        
+        row_count           = self.measurement_data_table.rowCount()
+        self.measurement_data_table.insertRow(row_count)
+        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(str(datetime.datetime.now())))
+        self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(measurement_data))
+        
+        self.timer_counter += 1        
+        print(measurement_data)
+        
+        if self.sample_count == self.timer_counter:
+            self.timer.stop()
+#        self.timer.stop()
+            
+#%% Measurement        
+    def StartMeasurement(self):
+        self.measurement_data_table.setRowCount(0)
+        self.timer_counter = 0
+        self.timer.setInterval(self.offset)
         
         # get measurement parameters 
-        channel         = self.channel_spinBox.value()
-        nplc_index      = self.integration_time_comboBox.currentIndex()
-        nplc            = self.nplc_list[nplc_index] 
-        sample_count    = self.nr_of_measurements_spinBox.value()     
+        channel             = self.channel_spinBox.value()
+        nplc_index          = self.integration_time_comboBox.currentIndex()
+        nplc                = self.nplc_list[nplc_index] 
+        self.sample_count   = self.nr_of_measurements_spinBox.value()     
         
         # write parameters to instrument
         self.instrument.write('ROUT:TERM FRON%d'       % channel)
@@ -110,32 +148,41 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         
         # set timeout        
-        self.instrument.timeout = int(sample_count * self.integration_time *2 + 3000)
+        self.instrument.timeout = int(self.sample_count * self.integration_time *2 + 3000)
 
-      
+
         # create table
-        self.measurement_data_table.clearContents()
+
         self.measurement_data_table.setColumnCount(2)
 #        self.measurement_data_table.setRowCount(sample_count + 1)
 #        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr.' ))
         self.measurement_data_table.insertRow(0)
         self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Date'))
         self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Data on channel %d [V]' %channel))
-
+            
+        self.timer.start()
         
-        for i in range(sample_count):
-            self.connection123.callMeasure.emit()
-            time.sleep(self.integration_time/1000 +2)
+#        for i in range(sample_count):
+#             # START MEASUREMENT
+#     
+#            measurement_data    = self.instrument.query('READ?')
+##            self.measurement_data_table.setItem(i + 1, 0, QtGui.QTableWidgetItem(str(i + 1)))
+#            
+##            self.filename_lineEdit.setText(measurement_data)
+##            print(datetime.datetime.now(),measurement_data)            
+#            row_count = self.measurement_data_table.rowCount()
+#            self.measurement_data_table.insertRow(row_count)
+#            self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(str(datetime.datetime.now())))
+#            self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(measurement_data))
+#                   
+##            self.measurement_data_table.show()
 
-        # Set instrumets values to default
-        self.instrument.write('ROUT:TERM FRON1')
-        self.instrument.write('SENS:VOLT:DC:NPLC MIN')    
-#        self.instrument.write('SAMP:COUN MIN')
-        self.instrument.timeout = 2000
-              
-#%% Measurement        
-    def StartMeasurement(self):
-
+#######################
+#        # Set instrumets values to default
+#        self.instrument.write('ROUT:TERM FRON1')
+#        self.instrument.write('SENS:VOLT:DC:NPLC MIN')    
+##        self.instrument.write('SAMP:COUN MIN')
+#        self.instrument.timeout = 2000
 
 #        self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Date'))
 #        self.measurement_data_table.setItem(0, 2, QtGui.QTableWidgetItem('Data [V]'))
@@ -143,19 +190,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         
 
-        # START MEASUREMENT
-     
-         measurement_data    = self.instrument.query('READ?')
-#            self.measurement_data_table.setItem(i + 1, 0, QtGui.QTableWidgetItem(str(i + 1)))
-            
-#            self.filename_lineEdit.setText(measurement_data)
-#            print(datetime.datetime.now(),measurement_data)            
-         row_count = self.measurement_data_table.rowCount()
-         self.measurement_data_table.insertRow(row_count)
-         self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(str(datetime.datetime.now())))
-         self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(measurement_data))
-                   
-#            self.measurement_data_table.show()
+       
         
         
 
