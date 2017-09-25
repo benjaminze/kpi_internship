@@ -33,7 +33,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.timer                   = QtCore.QTimer(self)
         self.timer.setInterval(self.offset)
         self.timer.timeout.connect(self.TimerMeasurement)
-
+	# use viWaitonEvent maybe like that: visa.viWaitOnEvent()
+	# or create an Event when status bit has flipped
         
         
     def Main(self):

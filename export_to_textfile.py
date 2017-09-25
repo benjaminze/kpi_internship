@@ -7,6 +7,9 @@ Input: filename, device_idn, table
 """
 from PyQt4 import QtGui
 
+# Try to iterate over row and coloumn of Table in double loop
+
+
 class exportToTextfile(QtGui.QTableWidget):
     def __init__(self, filename, device_idn, table):
         self.filename   = filename
