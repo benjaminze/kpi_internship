@@ -1,0 +1,6 @@
+IDN: HEWLETT-PACKARD,34420A,0,9.0-5.0-2.0
+ 
+All measurement data in [V] 
+
+Date    Data on channel 1 [V]    
+2017-09-26 16:23:06    +9.56640000E-01    
