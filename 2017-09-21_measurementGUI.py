@@ -3,7 +3,7 @@ from PyQt4 import QtCore, QtGui, uic
 import datetime
 import visa
 import time
-import export_to_textfile
+from export_to_textfile import ExportToTextfile
 
 
 qtCreatorFile = "measureGUI.ui" # Enter file here.
@@ -20,16 +20,20 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.rm                      = None
         self.resources               = []
         self.instrument              = None
+        self.lib                     = None
         self.integration_time        = 0
         self.idn                     = ''
         self.integration_time_list   = ['0.4',  '4','20', '40','200', '400','2000', '4000']
         self.nplc_list               = ['0.02','.2','1',  '2',  '10',  '20', '100',  '200'] 
+        self.sample_count            = 1
+        self.filename                = ''
+
         self.filename_lineEdit.setText('my_data')
-        self.sample_count            = 1        
+                       
         
         # timer 
         self.timer_counter           = 0
-        self.offset                  = 2000 #[ms]
+        self.offset                  = 200 #[ms]
         self.timer                   = QtCore.QTimer(self)
         self.timer.setInterval(self.offset)
         self.timer.timeout.connect(self.TimerMeasurement)
@@ -58,6 +62,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # trigger measurement start 
         self.start_measurement_button.clicked.connect(self.StartMeasurement)
         
+        # stop measurement  
+        self.stop_measurement_button.clicked.connect(self.StopMeasurement)
+        
         # export_data_button
         self.export_data_button.clicked.connect(self.ExportToFile)
         
@@ -66,6 +73,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # get invertet list of connected resources
         self.rm         = visa.ResourceManager()        
         self.resources  = self.rm.list_resources()[::-1]
+
         
         # write data to instruments_comboBox
         self.instruments_comboBox.clear()
@@ -118,18 +126,27 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         self.timer.setInterval(self.integration_time + self.offset)        
         measurement_data    = self.instrument.query('READ?')
+               
         
         row_count           = self.measurement_data_table.rowCount()
         self.measurement_data_table.insertRow(row_count)
         self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(str(datetime.datetime.now())))
         self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(measurement_data))
         
+                
+        
         self.timer_counter += 1        
-        print(measurement_data)
+        
         
         if self.sample_count == self.timer_counter:
             self.timer.stop()
 #        self.timer.stop()
+            
+#    def WaitOnEvent(self):
+#        self.lib.wait_on_event()
+   
+        
+        
             
 #%% Measurement        
     def StartMeasurement(self):
@@ -137,6 +154,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.timer_counter = 0
         self.timer.setInterval(self.offset)
         
+       
         # get measurement parameters 
         channel             = self.channel_spinBox.value()
         nplc_index          = self.integration_time_comboBox.currentIndex()
@@ -147,10 +165,11 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.instrument.write('ROUT:TERM FRON%d'       % channel)
         self.instrument.write('SENS:VOLT:DC:NPLC %s'   % nplc)    
         
-        
+        # calculate timer offset
+        if self.integration_time > 200: self.offset = int(self.integration_time*2) # NEEDS CHANGE  
+         
         # set timeout        
-        self.instrument.timeout = int(self.sample_count * self.integration_time *2 + 3000)
-
+        self.instrument.timeout = int(self.integration_time  + self.offset)
 
         # create table
 
@@ -200,9 +219,14 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #            #QtGui.QTextEdit.se
         
 
+    def StopMeasurement(self):
+        self.timer.stop()
+
 #%% Export
     def ExportToFile(self):
-        print(self.measurement_data_table.getContentsMargins())
+        self.filename = self.filename_lineEdit.text()
+        textfile = ExportToTextfile(self.filename, self.idn, self.measurement_data_table)
+        textfile.WriteToFile()
 
 #%% main
 if __name__ == "__main__":

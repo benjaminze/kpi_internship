@@ -7,24 +7,30 @@ Input: filename, device_idn, table
 """
 from PyQt4 import QtGui
 
-# Try to iterate over row and coloumn of Table in double loop
 
-
-class exportToTextfile(QtGui.QTableWidget):
+class ExportToTextfile(QtGui.QTableWidget):
     def __init__(self, filename, device_idn, table):
-        self.filename   = filename
+        self.filename   = filename + '.txt'
         self.idn        = device_idn
         self.table      = table
         
-    def CreateString(self):
-        QtGui.QTableWidget.ge
-#       # create string to export
-#        data_to_write    = [0 for i in range(int(sample_count)+2)]
-#        data_to_write[0] = 'IDN: '+ self.idn
-#        data_to_write[1] = 'All measurement data in [V]'      
-#        
-#        # print string to textbox
-#        data_string = ''        
-#        for item in data_to_write:
-#            data_string += ('%s\n' %item)
-#        self.measurement_data_textBox.setText(data_string)
+    def WriteToFile(self):
+  
+        file = open(self.filename, 'w')
+
+#        file.write( 'IDN: '+ self.idn + ' \n' 
+ #       + 'All measurement data in [V]')
+        
+        row_count       = self.table.rowCount()
+        coloumn_count   = self.table.coloumnCount()
+        content         = ''
+        for row in range(row_count):
+            file.write('\n')            
+            for coloumn in range(coloumn_count):
+                content = self.table.item(row, coloumn)
+                print(content)                
+                #file.write(content + '    ')
+                
+                
+        file.close()
+        print('Data successfully saved to file')
