@@ -7,7 +7,10 @@ Input: filename, device_idn, table
 """
 from PyQt4 import QtGui
 
-
+## add checkbos with two channels
+## second channel in table at same time
+## nr of measurement (in exportfile)
+##
 class ExportToTextfile(QtGui.QTableWidget):
     def __init__(self, filename, device_idn, table):
         self.filename   = filename + '.txt'
@@ -18,18 +21,17 @@ class ExportToTextfile(QtGui.QTableWidget):
   
         file = open(self.filename, 'w')
 
-#        file.write( 'IDN: '+ self.idn + ' \n' 
- #       + 'All measurement data in [V]')
-        
+        file.write( 'IDN: '+ self.idn + ' \n' 
+        + 'All measurement data in [V] \n')
+
         row_count       = self.table.rowCount()
-        coloumn_count   = self.table.coloumnCount()
+        column_count    = self.table.columnCount()
         content         = ''
         for row in range(row_count):
             file.write('\n')            
-            for coloumn in range(coloumn_count):
-                content = self.table.item(row, coloumn)
-                print(content)                
-                #file.write(content + '    ')
+            for column in range(column_count):
+                content = self.table.item(row, column).text()                
+                file.write(content + '    ')
                 
                 
         file.close()

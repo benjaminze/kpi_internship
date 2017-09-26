@@ -28,7 +28,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.sample_count            = 1
         self.filename                = ''
 
-        self.filename_lineEdit.setText('my_data')
+        self.filename_lineEdit.setText('myData')
                        
         
         # timer 
@@ -40,12 +40,24 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 	# use viWaitonEvent maybe like that: visa.viWaitOnEvent()
 	# or create an Event when status bit has flipped
         
+        # Disable all Buttons and so on
+#        self.scan_instruments_button.setEnabled(True)
+        self.idn_button.setEnabled(False)
+        self.instruments_comboBox.setEnabled(False)
+        self.integration_time_comboBox.setEnabled(False)
+        self.start_measurement_button.setEnabled(False)
+        self.stop_measurement_button.setEnabled(False)
+        self.export_data_button.setEnabled(False)
+        self.channel_spinBox.setEnabled(False)
+        self.nr_of_measurements_spinBox.setEnabled(False)
         
     def Main(self):
         '''Important information about this function
 
  
         '''
+        
+
         #Trigger scan for instruments
         self.scan_instruments_button.clicked.connect(self.ScanForInstruments)
         self.scan_instruments_button.clicked.connect(self.SetDefaultValues)
@@ -70,6 +82,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         
     def ScanForInstruments(self):
+        self.idn_button.setEnabled(True)
+        self.instruments_comboBox.setEnabled(True)
         # get invertet list of connected resources
         self.rm         = visa.ResourceManager()        
         self.resources  = self.rm.list_resources()[::-1]
@@ -98,6 +112,11 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 
 
     def GetIDN(self):
+        self.integration_time_comboBox.setEnabled(True)
+        self.channel_spinBox.setEnabled(True)
+        self.nr_of_measurements_spinBox.setEnabled(True)
+        self.start_measurement_button.setEnabled(True)
+        
          # Get instruments IDN and print in idn_textBox        
         self.idn = self.instrument.query('*IDN?')
         self.idn_textBox.setText(self.idn)
@@ -125,12 +144,12 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         
         self.timer.setInterval(self.integration_time + self.offset)        
-        measurement_data    = self.instrument.query('READ?')
+        measurement_data    = self.instrument.query('READ?')[:-1]
                
         
         row_count           = self.measurement_data_table.rowCount()
         self.measurement_data_table.insertRow(row_count)
-        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(str(datetime.datetime.now())))
+        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(str(datetime.datetime.now())[:-7]))
         self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(measurement_data))
         
                 
@@ -139,6 +158,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         
         if self.sample_count == self.timer_counter:
+            self.export_data_button.setEnabled(True)
             self.timer.stop()
 #        self.timer.stop()
             
@@ -150,6 +170,10 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             
 #%% Measurement        
     def StartMeasurement(self):
+        # enable stop_measurement_button        
+        self.stop_measurement_button.setEnabled(True)
+        
+        # initialize table attributes
         self.measurement_data_table.setRowCount(0)
         self.timer_counter = 0
         self.timer.setInterval(self.offset)
@@ -179,7 +203,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.measurement_data_table.insertRow(0)
         self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Date'))
         self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Data on channel %d [V]' %channel))
-            
+        
         self.timer.start()
         
 #        for i in range(sample_count):
@@ -217,11 +241,26 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #        
 
 #            #QtGui.QTextEdit.se
-        
+    def closeEvent(self, event):
+      
+        reply = QtGui.QMessageBox.question(self, 'Message',
+            "Are you sure to quit?", QtGui.QMessageBox.Yes | 
+            QtGui.QMessageBox.No, QtGui.QMessageBox.No)
 
+        if reply == QtGui.QMessageBox.Yes:
+            # Set instrumets values to default            
+            self.instrument.write("*RST")
+            event.accept()
+        else:
+            event.ignore()   
+            
+            
     def StopMeasurement(self):
+        self.export_data_button.setEnabled(True)        
         self.timer.stop()
 
+        
+        
 #%% Export
     def ExportToFile(self):
         self.filename = self.filename_lineEdit.text()
