@@ -20,19 +20,50 @@ class ExportToTextfile(QtGui.QTableWidget):
     def WriteToFile(self):
   
         file = open(self.filename, 'w')
-
-        file.write( 'IDN: '+ self.idn + ' \n' 
-        + 'All measurement data in [V] \n')
-
+        
+        # Write IDN
+        file.write( 'IDN: '+ self.idn + ' \n')
+        
+        # get table size
         row_count       = self.table.rowCount()
         column_count    = self.table.columnCount()
-        content         = ''
-        for row in range(row_count):
-            file.write('\n')            
+        
+        # Check if table contains data
+        if row_count < 2:
+            return "No Data!"
+        else:
+            # get length of table entries
+            length_of_data = self.GetLengthOfEntries(row_count,column_count)
+            
+            
+            # Write table header
+
             for column in range(column_count):
-                content = self.table.item(row, column).text()                
-                file.write(content + '    ')
                 
-                
-        file.close()
-        print('Data successfully saved to file')
+                header_name = self.table.item(0, column).text()
+                header_len  = len(header_name)
+                nr_spaces   = 4 + length_of_data[column] - header_len
+                header      = '{0}{1}'.format(header_name,' '*nr_spaces)
+                file.write(header)
+            
+            # Write table content
+            
+            for row in range(1, row_count):
+                file.write('\n')            
+                for column in range(column_count):
+                    content     = self.table.item(row, column).text()                
+                    
+                    file.write(content + '    ')
+                    
+                    
+            file.close()
+            return "Data saved!"
+        
+        
+    def GetLengthOfEntries(self, row_count, column_count):
+    
+        length_of_data = [0 for i in range(column_count)]
+        for column in range(column_count):
+            length_of_data[column] = len(self.table.item(1, column).text())
+        
+        return length_of_data

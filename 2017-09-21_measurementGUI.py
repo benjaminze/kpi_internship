@@ -2,7 +2,6 @@ import sys
 from PyQt4 import QtCore, QtGui, uic
 import datetime
 import visa
-import time
 from export_to_textfile import ExportToTextfile
 
 
@@ -17,24 +16,26 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         
         # declare attributes     
-        self.rm                      = None
-        self.resources               = []
-        self.instrument              = None
-        self.lib                     = None
-        self.integration_time        = 0
-        self.idn                     = ''
-        self.integration_time_list   = ['0.4',  '4','20', '40','200', '400','2000', '4000']
-        self.nplc_list               = ['0.02','.2','1',  '2',  '10',  '20', '100',  '200'] 
-        self.sample_count            = 1
-        self.filename                = ''
+        self.rm                     = None
+        self.resources              = []
+        self.instrument             = None
+        self.lib                    = None
+        self.integration_time       = 0
+        self.idn                    = ''
+        self.integration_time_list  = ['0.4',  '4','20', '40','200', '400','2000', '4000']
+        self.nplc_list              = ['0.02','.2','1',  '2',  '10',  '20', '100',  '200'] 
+        self.sample_count           = 1
+        self.filename               = ''
+        self.digits_sample_count    = 0
+        self.nr_string              = ''
 
         self.filename_lineEdit.setText('myData')
                        
         
         # timer 
-        self.timer_counter           = 0
-        self.offset                  = 200 #[ms]
-        self.timer                   = QtCore.QTimer(self)
+        self.timer_counter          = 0
+        self.offset                 = 200 #[ms]
+        self.timer                  = QtCore.QTimer(self)
         self.timer.setInterval(self.offset)
         self.timer.timeout.connect(self.TimerMeasurement)
 	# use viWaitonEvent maybe like that: visa.viWaitOnEvent()
@@ -50,6 +51,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.export_data_button.setEnabled(False)
         self.channel_spinBox.setEnabled(False)
         self.nr_of_measurements_spinBox.setEnabled(False)
+        self.data_saved_lineEdit.setEnabled(False)
+        self.idn_textBox.setEnabled(False)
         
     def Main(self):
         '''Important information about this function
@@ -116,6 +119,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.channel_spinBox.setEnabled(True)
         self.nr_of_measurements_spinBox.setEnabled(True)
         self.start_measurement_button.setEnabled(True)
+        self.idn_textBox.setEnabled(True)
         
          # Get instruments IDN and print in idn_textBox        
         self.idn = self.instrument.query('*IDN?')
@@ -126,52 +130,24 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # chosen channel has changed
         self.integration_time = int(self.integration_time_comboBox.currentText())
 
-    
-    def TimerMeasurement(self):
-        
-        
-#        # get measurement parameters 
-#        channel             = self.channel_spinBox.value()
-#        nplc_index          = self.integration_time_comboBox.currentIndex()
-#        nplc                = self.nplc_list[nplc_index] 
-#        self.sample_count   = self.nr_of_measurements_spinBox.value()     
-#        
-#        # write parameters to instrument
-#        self.instrument.write('ROUT:TERM FRON%d'       % channel)
-#        self.instrument.write('SENS:VOLT:DC:NPLC %s'   % nplc)            
-#        
-#        
-        
-        
-        self.timer.setInterval(self.integration_time + self.offset)        
-        measurement_data    = self.instrument.query('READ?')[:-1]
-               
-        
-        row_count           = self.measurement_data_table.rowCount()
-        self.measurement_data_table.insertRow(row_count)
-        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(str(datetime.datetime.now())[:-7]))
-        self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(measurement_data))
-        
-                
-        
-        self.timer_counter += 1        
-        
-        
-        if self.sample_count == self.timer_counter:
-            self.export_data_button.setEnabled(True)
-            self.timer.stop()
-#        self.timer.stop()
-            
-#    def WaitOnEvent(self):
-#        self.lib.wait_on_event()
-   
-        
-        
             
 #%% Measurement        
     def StartMeasurement(self):
         # enable stop_measurement_button        
         self.stop_measurement_button.setEnabled(True)
+        
+        # disable all actions        
+        self.data_saved_lineEdit.clear()        
+        self.data_saved_lineEdit.setEnabled(False)            
+        self.export_data_button.setEnabled(False)
+        self.idn_button.setEnabled(False)
+        self.instruments_comboBox.setEnabled(False)
+        self.integration_time_comboBox.setEnabled(False)
+        self.start_measurement_button.setEnabled(False)
+        self.scan_instruments_button.setEnabled(False)
+        self.channel_spinBox.setEnabled(False)
+        self.nr_of_measurements_spinBox.setEnabled(False)
+        self.idn_textBox.setEnabled(False)
         
         # initialize table attributes
         self.measurement_data_table.setRowCount(0)
@@ -180,31 +156,37 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
        
         # get measurement parameters 
-        channel             = self.channel_spinBox.value()
-        nplc_index          = self.integration_time_comboBox.currentIndex()
-        nplc                = self.nplc_list[nplc_index] 
-        self.sample_count   = self.nr_of_measurements_spinBox.value()     
+        channel                     = self.channel_spinBox.value()
+        nplc_index                  = self.integration_time_comboBox.currentIndex()
+        nplc                        = self.nplc_list[nplc_index] 
+        self.sample_count           = self.nr_of_measurements_spinBox.value()     
+        self.digits_sample_count    = len(str(self.sample_count))
+        self.nr_string              = '{:' + str(self.digits_sample_count) + '}'
         
         # write parameters to instrument
         self.instrument.write('ROUT:TERM FRON%d'       % channel)
         self.instrument.write('SENS:VOLT:DC:NPLC %s'   % nplc)    
         
         # calculate timer offset
-        if self.integration_time > 200: self.offset = int(self.integration_time*2) # NEEDS CHANGE  
+        if self.integration_time >= 200: self.offset = int(self.integration_time*2) # NEEDS CHANGE  
          
         # set timeout        
-        self.instrument.timeout = int(self.integration_time  + self.offset)
+        self.instrument.timeout = int(self.integration_time  + self.offset*0.9)
 
         # create table
 
-        self.measurement_data_table.setColumnCount(2)
+        self.measurement_data_table.setColumnCount(3)
 #        self.measurement_data_table.setRowCount(sample_count + 1)
 #        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr.' ))
         self.measurement_data_table.insertRow(0)
-        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Date'))
-        self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Data on channel %d [V]' %channel))
+        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr'))
+        self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Date'))
+        self.measurement_data_table.setItem(0, 2, QtGui.QTableWidgetItem('Data on channel %d [V]' %channel))
+
         
+        # Start Measurement
         self.timer.start()
+        
         
 #        for i in range(sample_count):
 #             # START MEASUREMENT
@@ -241,6 +223,82 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #        
 
 #            #QtGui.QTextEdit.se
+
+    
+    def TimerMeasurement(self):
+        
+        
+#        # get measurement parameters 
+#        channel             = self.channel_spinBox.value()
+#        nplc_index          = self.integration_time_comboBox.currentIndex()
+#        nplc                = self.nplc_list[nplc_index] 
+#        self.sample_count   = self.nr_of_measurements_spinBox.value()     
+#        
+#        # write parameters to instrument
+#        self.instrument.write('ROUT:TERM FRON%d'       % channel)
+#        self.instrument.write('SENS:VOLT:DC:NPLC %s'   % nplc)            
+#        
+#        
+        
+        # Set timer interval: Must be bigger than device timeout
+        self.timer.setInterval(self.integration_time + self.offset)
+        
+        # Query 'read', device measures
+        measurement_data    = self.instrument.query('READ?')[:-1]
+               
+        # write to table
+        row_count           = self.measurement_data_table.rowCount()
+        self.measurement_data_table.insertRow(row_count)
+        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(self.nr_string.format(str(self.timer_counter + 1))))
+        self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(str(datetime.datetime.now())[:-7]))
+        self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data))
+        
+        # enable auto scroll
+#        self.measurement_data_table.autoScrollMargin() #DOES NOT WORK
+        
+        # increase counter
+        self.timer_counter += 1        
+        
+        # stop measurement if enough data points
+        if self.sample_count == self.timer_counter:
+            
+            # enable all actions except stop_measurement_button            
+            self.stop_measurement_button.setEnabled(False)
+            self.export_data_button.setEnabled(True)
+            self.idn_button.setEnabled(True)
+            self.instruments_comboBox.setEnabled(True)
+            self.integration_time_comboBox.setEnabled(True)
+            self.start_measurement_button.setEnabled(True)
+            self.scan_instruments_button.setEnabled(True)
+            self.channel_spinBox.setEnabled(True)
+            self.nr_of_measurements_spinBox.setEnabled(True)
+            self.idn_textBox.setEnabled(True)
+            
+            # stop measurement            
+            self.timer.stop()
+#        self.timer.stop()
+            
+#    def WaitOnEvent(self):
+#        self.lib.wait_on_event()
+   
+        
+    def StopMeasurement(self):
+        # enable all actions except stop_measurement_button            
+        self.stop_measurement_button.setEnabled(False)
+        self.export_data_button.setEnabled(True)
+        self.idn_button.setEnabled(True)
+        self.instruments_comboBox.setEnabled(True)
+        self.integration_time_comboBox.setEnabled(True)
+        self.start_measurement_button.setEnabled(True)
+        self.scan_instruments_button.setEnabled(True)
+        self.channel_spinBox.setEnabled(True)
+        self.nr_of_measurements_spinBox.setEnabled(True)        
+        self.idn_textBox.setEnabled(True)
+        
+        # stop measurement
+        self.timer.stop()
+
+#%% CLOSE        
     def closeEvent(self, event):
       
         reply = QtGui.QMessageBox.question(self, 'Message',
@@ -255,17 +313,16 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             event.ignore()   
             
             
-    def StopMeasurement(self):
-        self.export_data_button.setEnabled(True)        
-        self.timer.stop()
-
-        
-        
 #%% Export
     def ExportToFile(self):
-        self.filename = self.filename_lineEdit.text()
-        textfile = ExportToTextfile(self.filename, self.idn, self.measurement_data_table)
-        textfile.WriteToFile()
+
+        self.filename   = self.filename_lineEdit.text()
+        textfile        = ExportToTextfile(self.filename, self.idn, self.measurement_data_table)
+        success         = textfile.WriteToFile()
+        self.data_saved_lineEdit.setEnabled(True)
+        self.data_saved_lineEdit.setReadOnly(False)        
+        self.data_saved_lineEdit.setText(success)
+        self.data_saved_lineEdit.setReadOnly(True)
 
 #%% main
 if __name__ == "__main__":
