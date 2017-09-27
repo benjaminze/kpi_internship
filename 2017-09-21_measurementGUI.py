@@ -28,6 +28,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.filename               = ''
         self.digits_sample_count    = 0
         self.nr_string              = ''
+        self.channel                = 0
 
         self.filename_lineEdit.setText('myData')
                        
@@ -49,7 +50,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.start_measurement_button.setEnabled(False)
         self.stop_measurement_button.setEnabled(False)
         self.export_data_button.setEnabled(False)
-        self.channel_spinBox.setEnabled(False)
+        self.channel_1_checkBox.setEnabled(False)
+        self.channel_2_checkBox.setEnabled(False)
         self.nr_of_measurements_spinBox.setEnabled(False)
         self.data_saved_lineEdit.setEnabled(False)
         self.idn_textBox.setEnabled(False)
@@ -116,7 +118,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 
     def GetIDN(self):
         self.integration_time_comboBox.setEnabled(True)
-        self.channel_spinBox.setEnabled(True)
+        self.channel_1_checkBox.setEnabled(True)
+        self.channel_2_checkBox.setEnabled(True)
         self.nr_of_measurements_spinBox.setEnabled(True)
         self.start_measurement_button.setEnabled(True)
         self.idn_textBox.setEnabled(True)
@@ -129,8 +132,20 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def GetIntegrationTime(self, index):
         # chosen channel has changed
         self.integration_time = int(self.integration_time_comboBox.currentText())
-
+        
+        
+    def GetChannel(self):
+        
+        if self.channel_1_checkBox.isChecked() and self.channel_2_checkBox.isChecked():
+            channel = 12
+        elif self.channel_1_checkBox.isChecked():
+            channel = 1
+        else:
+            channel = 2
             
+        return channel
+ 
+ 
 #%% Measurement        
     def StartMeasurement(self):
         # enable stop_measurement_button        
@@ -145,7 +160,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.integration_time_comboBox.setEnabled(False)
         self.start_measurement_button.setEnabled(False)
         self.scan_instruments_button.setEnabled(False)
-        self.channel_spinBox.setEnabled(False)
+        self.channel_1_checkBox.setEnabled(False)
+        self.channel_2_checkBox.setEnabled(False)
         self.nr_of_measurements_spinBox.setEnabled(False)
         self.idn_textBox.setEnabled(False)
         
@@ -156,7 +172,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
        
         # get measurement parameters 
-        channel                     = self.channel_spinBox.value()
+        self.channel                = self.GetChannel()
         nplc_index                  = self.integration_time_comboBox.currentIndex()
         nplc                        = self.nplc_list[nplc_index] 
         self.sample_count           = self.nr_of_measurements_spinBox.value()     
@@ -164,7 +180,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.nr_string              = '{:' + str(self.digits_sample_count) + '}'
         
         # write parameters to instrument
-        self.instrument.write('ROUT:TERM FRON%d'       % channel)
+        if not self.channel == 12:
+            self.instrument.write('ROUT:TERM FRON%d'       % self.channel)
         self.instrument.write('SENS:VOLT:DC:NPLC %s'   % nplc)    
         
         # calculate timer offset
@@ -175,13 +192,14 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 
         # create table
 
-        self.measurement_data_table.setColumnCount(3)
+        self.measurement_data_table.setColumnCount(4)
 #        self.measurement_data_table.setRowCount(sample_count + 1)
 #        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr.' ))
         self.measurement_data_table.insertRow(0)
         self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr'))
         self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Date'))
-        self.measurement_data_table.setItem(0, 2, QtGui.QTableWidgetItem('Data on channel %d [V]' %channel))
+        self.measurement_data_table.setItem(0, 2, QtGui.QTableWidgetItem('Data on Ch 1 [V]'))
+        self.measurement_data_table.setItem(0, 3, QtGui.QTableWidgetItem('Data on Ch 2 [V]'))
 
         
         # Start Measurement
@@ -243,15 +261,34 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # Set timer interval: Must be bigger than device timeout
         self.timer.setInterval(self.integration_time + self.offset)
         
-        # Query 'read', device measures
-        measurement_data    = self.instrument.query('READ?')[:-1]
+        if self.channel == 12:
+            # Set timer interval: Must be bigger than device timeout
+            self.timer.setInterval(2*(self.integration_time + self.offset))
+            
+            measurement_data = ['','']            
+            
+            current_channel = 1
+            self.instrument.write('ROUT:TERM FRON%d' % current_channel)
+            measurement_data[0]    = self.instrument.query('READ?')[:-1] 
+            
+            current_channel = 2
+            self.instrument.write('ROUT:TERM FRON%d' % current_channel)
+            measurement_data[1]    = self.instrument.query('READ?')[:-1]
+            
+            self.WriteToTableWidget(measurement_data)
+            
+            
+        else:
+            # Set timer interval: Must be bigger than device timeout
+            self.timer.setInterval(self.integration_time + self.offset)
+            # Query 'read', device measures
+            measurement_data    = self.instrument.query('READ?')[:-1]
+            self.WriteToTableWidget(measurement_data)
+        
+        
+
                
-        # write to table
-        row_count           = self.measurement_data_table.rowCount()
-        self.measurement_data_table.insertRow(row_count)
-        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(self.nr_string.format(str(self.timer_counter + 1))))
-        self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(str(datetime.datetime.now())[:-7]))
-        self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data))
+
         
         # enable auto scroll
 #        self.measurement_data_table.autoScrollMargin() #DOES NOT WORK
@@ -270,7 +307,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             self.integration_time_comboBox.setEnabled(True)
             self.start_measurement_button.setEnabled(True)
             self.scan_instruments_button.setEnabled(True)
-            self.channel_spinBox.setEnabled(True)
+            self.channel_1_checkBox.setEnabled(True)
+            self.channel_2_checkBox.setEnabled(True)
             self.nr_of_measurements_spinBox.setEnabled(True)
             self.idn_textBox.setEnabled(True)
             
@@ -281,7 +319,26 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #    def WaitOnEvent(self):
 #        self.lib.wait_on_event()
    
+   
+    def WriteToTableWidget(self, measurement_data):
         
+        # write to table
+        row_count = self.measurement_data_table.rowCount()
+        self.measurement_data_table.insertRow(row_count)
+        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(self.nr_string.format(str(self.timer_counter + 1))))
+        self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(str(datetime.datetime.now())[:-7]))
+        
+        if self.channel == 1:
+            self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data))
+            self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem('-'))
+           
+        elif self.channel == 2:
+            self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem('-'))
+            self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(measurement_data))
+        else:
+            self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data[0]))
+            self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(measurement_data[1]))
+            
     def StopMeasurement(self):
         # enable all actions except stop_measurement_button            
         self.stop_measurement_button.setEnabled(False)
@@ -291,7 +348,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.integration_time_comboBox.setEnabled(True)
         self.start_measurement_button.setEnabled(True)
         self.scan_instruments_button.setEnabled(True)
-        self.channel_spinBox.setEnabled(True)
+        self.channel_1_checkBox.setEnabled(True)
+        self.channel_2_checkBox.setEnabled(True)
         self.nr_of_measurements_spinBox.setEnabled(True)        
         self.idn_textBox.setEnabled(True)
         
