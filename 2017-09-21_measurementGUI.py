@@ -191,16 +191,14 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.instrument.timeout = int(self.integration_time  + self.offset*0.9)
 
         # create table
-
         self.measurement_data_table.setColumnCount(4)
-#        self.measurement_data_table.setRowCount(sample_count + 1)
-#        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr.' ))
         self.measurement_data_table.insertRow(0)
-        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr'))
+        self.measurement_data_table.verticalHeader().setVisible(False)
+        self.measurement_data_table.setItem(0, 0, QtGui.QTableWidgetItem('Nr.'))
         self.measurement_data_table.setItem(0, 1, QtGui.QTableWidgetItem('Date'))
         self.measurement_data_table.setItem(0, 2, QtGui.QTableWidgetItem('Data on Ch 1 [V]'))
         self.measurement_data_table.setItem(0, 3, QtGui.QTableWidgetItem('Data on Ch 2 [V]'))
-
+#        QtGui.QTableWidget.verticalHeader().setVisible(False)
         
         # Start Measurement
         self.timer.start()
@@ -261,6 +259,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # Set timer interval: Must be bigger than device timeout
         self.timer.setInterval(self.integration_time + self.offset)
         
+        
         if self.channel == 12:
             # Set timer interval: Must be bigger than device timeout
             self.timer.setInterval(2*(self.integration_time + self.offset))
@@ -284,10 +283,12 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             # Query 'read', device measures
             measurement_data    = self.instrument.query('READ?')[:-1]
             self.WriteToTableWidget(measurement_data)
-        
+
+        # rescale column width
+        self.measurement_data_table.resizeColumnsToContents()        
         
 
-               
+              
 
         
         # enable auto scroll

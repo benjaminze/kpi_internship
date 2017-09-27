@@ -37,9 +37,7 @@ class ExportToTextfile(QtGui.QTableWidget):
             
             
             # Write table header
-
             for column in range(column_count):
-                
                 header_name = self.table.item(0, column).text()
                 header_len  = len(header_name)
                 nr_spaces   = 4 + length_of_data[column] - header_len
@@ -47,12 +45,10 @@ class ExportToTextfile(QtGui.QTableWidget):
                 file.write(header)
             
             # Write table content
-            
             for row in range(1, row_count):
                 file.write('\n')            
                 for column in range(column_count):
                     content     = self.table.item(row, column).text()                
-                    
                     file.write(content + '    ')
                     
                     
@@ -62,7 +58,7 @@ class ExportToTextfile(QtGui.QTableWidget):
         
     def GetLengthOfEntries(self, row_count, column_count):
     
-        length_of_data = [0 for i in range(column_count)]
+        length_of_data = [0]*column_count
         for column in range(column_count):
             length_of_data[column] = len(self.table.item(1, column).text())
         
