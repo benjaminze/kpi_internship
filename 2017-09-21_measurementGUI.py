@@ -2,6 +2,7 @@ import sys
 from PyQt4 import QtCore, QtGui, uic
 import datetime
 import visa
+import re
 from export_to_textfile import ExportToTextfile
 
 
@@ -64,9 +65,12 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         '''
         
 
-        #Trigger scan for instruments
+        # trigger scan for instruments
         self.scan_instruments_button.clicked.       connect(self.ScanForInstruments )
         self.scan_instruments_button.clicked.       connect(self.SetDefaultValues   )
+        
+        # import_data_button
+        self.import_data_button.clicked.            connect(self.ImportData         )        
         
         # trigger get idn 
         self.idn_button.clicked.                    connect(self.GetIDN             )
@@ -180,6 +184,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.channel_2_checkBox.        setEnabled(False)
         self.nr_of_measurements_spinBox.setEnabled(False)
         self.idn_textBox.               setEnabled(False)
+        self.import_data_button.        setEnabled(False)
         
         # initialize table attributes
         self.measurement_data_table.    setRowCount(0)
@@ -219,8 +224,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.measurement_data_table.horizontalHeader(). setVisible(True )
         self.measurement_data_table.setHorizontalHeaderItem(0, QtGui.QTableWidgetItem('Nr.'))
         self.measurement_data_table.setHorizontalHeaderItem(1, QtGui.QTableWidgetItem('Date'))
-        self.measurement_data_table.setHorizontalHeaderItem(2, QtGui.QTableWidgetItem('Data on Ch 1 [V]'))
-        self.measurement_data_table.setHorizontalHeaderItem(3, QtGui.QTableWidgetItem('Data on Ch 2 [V]'))
+        self.measurement_data_table.setHorizontalHeaderItem(2, QtGui.QTableWidgetItem('Data_on_Ch_1_[V]'))
+        self.measurement_data_table.setHorizontalHeaderItem(3, QtGui.QTableWidgetItem('Data_on_Ch_2_[V]'))
 
         # Start Measurement, it will be stopped in fct TimerMeasurement or StopMeasurement
         self.timer.start()
@@ -282,6 +287,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             self.channel_2_checkBox.        setEnabled(True)
             self.nr_of_measurements_spinBox.setEnabled(True)
             self.idn_textBox.               setEnabled(True)
+            self.import_data_button.        setEnabled(True)
             
             # stop measurement            
             self.timer.stop()
@@ -330,6 +336,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.channel_2_checkBox.        setEnabled(True)
         self.nr_of_measurements_spinBox.setEnabled(True)        
         self.idn_textBox.               setEnabled(True)
+        self.import_data_button.        setEnabled(True)
         
         # stop measurement
         self.timer.stop()
@@ -351,7 +358,51 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         else:
             event.ignore()   
             
+
+#%% IMPORT
+    def ImportData(self):
+        self.export_data_button.        setEnabled(False)
+        
+        
+        openFile        = QtGui.QAction("&Open File", self)
+        openFile.setStatusTip('Open File')
+        openFilename    = QtGui.QFileDialog.getOpenFileName(self,'Open File')
+        file            = open(openFilename, 'r')
+        
+        # split text in lines
+        textlines       = file.read().splitlines()
+        
+        # clear table and set columnCount
+        self.measurement_data_table.    setRowCount(0)
+        self.measurement_data_table.    setColumnCount(4)
+        
+        # enable horzontal header and hide vertical header
+        self.measurement_data_table.verticalHeader().   setVisible(False)
+        self.measurement_data_table.horizontalHeader(). setVisible(True )
+        
+        # write header to table
+        headers = textlines[2].split()
+        for i,header in enumerate(headers):
+            self.measurement_data_table.setHorizontalHeaderItem(i, QtGui.QTableWidgetItem(header))
+        
+        # split lines in columns
+        for line in textlines[3:]:
+            current_line = line.split()            
             
+            row_count = self.measurement_data_table.rowCount()
+            self.measurement_data_table.insertRow(row_count)
+            
+            self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(current_line[0]))
+            self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem('{} {}'.format(current_line[1],current_line[2])))
+            self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(current_line[3]))
+            self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(current_line[4]))
+            
+#            self.measurement_data_table.scrollToBottom()
+        
+        self.measurement_data_table.resizeColumnsToContents()   
+        # write idn
+        self.idn_textBox.               setEnabled(True)
+        self.idn_textBox.setText(textlines[0].split()[1])            
 #%% Export
     def ExportToFile(self):
         
