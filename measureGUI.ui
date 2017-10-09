@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1289</width>
-    <height>705</height>
+    <height>746</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -384,6 +384,26 @@
     </property>
     <property name="text">
      <string>Import Data</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="plot_data_button">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>610</y>
+      <width>211</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Plot Data</string>
     </property>
    </widget>
   </widget>

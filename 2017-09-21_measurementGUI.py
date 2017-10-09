@@ -3,6 +3,13 @@ from PyQt4 import QtCore, QtGui, uic
 import datetime
 import visa
 import re
+
+import numpy as np
+
+
+import pyqtgraph as pg
+
+from import_from_textfile import ImportFromTextfile
 from export_to_textfile import ExportToTextfile
 
 
@@ -42,6 +49,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # declare attributes for export    
         self.filename               = ''
         self.filename_lineEdit.setText('myData')
+        
+        # declare attributes for Plot
+        self.plot_widget            = None
                        
 
         
@@ -57,6 +67,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.nr_of_measurements_spinBox.setEnabled(False)
         self.data_saved_lineEdit.       setEnabled(False)
         self.idn_textBox.               setEnabled(False)
+        self.plot_data_button.          setEnabled(False)
         
     def Main(self):
         '''Main function contains of all interactive Objects of the GUI.
@@ -87,6 +98,10 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # stop measurement  
         self.stop_measurement_button.clicked.       connect(self.StopMeasurement    )
         
+        # plot data        
+#        self.plot_data_button.clicked.              connect(self.CreatePlotWidget   )
+#        self.measurement_data_table.cellChanged.connect(self.PlotData)
+#        QtGui.QTableWidget.cellChanged.connect(self.PlotData)
         # export_data_button
         self.export_data_button.clicked.            connect(self.ExportToFile       )
         
@@ -96,6 +111,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # enable buttons for next step        
         self.idn_button.            setEnabled(True)
         self.instruments_comboBox.  setEnabled(True)
+        
+        # clear idn_textBox        
+        self.idn_textBox.clear()
         
         # get invertet list of connected resources
         self.rm         = visa.ResourceManager()        
@@ -120,7 +138,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def GetInstrument(self, index):
         
         # chosen instrument has changed
-        self.idn_textBox.TextEdit.clear()
+        self.idn_textBox.clear()
         self.instrument = self.rm.open_resource(self.instruments_comboBox.currentText())
 
 
@@ -185,6 +203,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.nr_of_measurements_spinBox.setEnabled(False)
         self.idn_textBox.               setEnabled(False)
         self.import_data_button.        setEnabled(False)
+        self.plot_data_button.          setEnabled(False) 
         
         # initialize table attributes
         self.measurement_data_table.    setRowCount(0)
@@ -274,7 +293,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         # stop measurement if enough data points
         if self.sample_count == self.timer_counter:
-            
+                
             # enable all actions except stop_measurement_button            
             self.stop_measurement_button.   setEnabled(False)
             self.export_data_button.        setEnabled(True)
@@ -288,11 +307,11 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             self.nr_of_measurements_spinBox.setEnabled(True)
             self.idn_textBox.               setEnabled(True)
             self.import_data_button.        setEnabled(True)
+            self.plot_data_button.          setEnabled(True)
             
             # stop measurement            
             self.timer.stop()
-   
-   
+
     def WriteToTableWidget(self, measurement_data):
         '''Nr. of measurement, Date and Time, and given measurement data will 
         be written to QTableWidget to the associated column.
@@ -303,8 +322,10 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.measurement_data_table.insertRow(row_count)
 
         # write Nr and Time
-        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(self.nr_string.format(str(self.timer_counter + 1))))
-        self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(str(datetime.datetime.now())[:-7]))
+        measurement_time    = str(datetime.datetime.now())[:-7]
+        measurement_nr      = str(self.timer_counter + 1)
+        self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(self.nr_string.format(measurement_nr)))
+        self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(measurement_time))
         
         # scroll to bottom
         self.measurement_data_table.scrollToBottom()
@@ -313,14 +334,14 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         if self.channel == 1:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data))
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem('-'))
-           
         elif self.channel == 2:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem('-'))
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(measurement_data))
         else:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data[0]))
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(measurement_data[1]))
-            
+     
+           
             
     def StopMeasurement(self):
         
@@ -337,10 +358,84 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.nr_of_measurements_spinBox.setEnabled(True)        
         self.idn_textBox.               setEnabled(True)
         self.import_data_button.        setEnabled(True)
+        self.plot_data_button.          setEnabled(True)
         
         # stop measurement
         self.timer.stop()
 
+
+#%% IMPORT
+    def ImportData(self):
+        self.export_data_button.        setEnabled(False)
+        
+        # choose file and open
+        openFile        = QtGui.QAction("&Open File", self)
+        openFile.setStatusTip('Open File')
+        openFilename    = QtGui.QFileDialog.getOpenFileName(self,'Open File')
+        file            = open(openFilename, 'r')
+        
+        # import data from file
+        importFile      = ImportFromTextfile(file, self.measurement_data_table)
+        device_idn      = importFile.ImportData()
+        
+        # write idn
+        self.idn_textBox.               setEnabled(True)
+        self.idn_textBox.setText(device_idn)
+
+        # enable plot_data_button
+        self.plot_data_button.          setEnabled(True)   
+
+#%% PLOT DATA
+    def CreatePlotWidget(self):
+        self.plot_widget = pg.PlotWidget()
+        self.plot_widget.show()
+        self.PlotData()        
+        
+    def PlotData(self):
+        row_count       = self.measurement_data_table.rowCount()
+#        column_count    = self.measurement_data_table.columnCount()
+        nr = np.array([])
+        data_to_plot = np.array([0,0])
+        data_channel_1 = 0
+        data_channel_2 = 0       
+        
+        print("hier")
+        for row in range(row_count):
+            np.append(nr,int(self.measurement_data_table.item(row, 0).text()))
+            
+            data_channel_1 = self.measurement_data_table.item(row, 2).text()
+            data_channel_2 = self.measurement_data_table.item(row, 3).text()
+            
+            if data_channel_1 == '-':
+                np.append(data_to_plot[0],0)
+                np.append(data_to_plot[1],float(data_channel_2))
+                
+            elif data_channel_2 == '-':
+                np.append(data_to_plot[0],float(data_channel_1))
+                np.append(data_to_plot[1],0)
+            
+            else:
+                np.append(data_to_plot[0],float(data_channel_1))
+                np.append(data_to_plot[1],float(data_channel_2))
+
+        
+        # plot        
+        self.plot_widget.plot(nr,data_to_plot[0])
+#%% Export
+    def ExportToFile(self):
+        
+        # Get filename from lineEdit
+        self.filename   = self.filename_lineEdit.text()
+        
+        # Write to file        
+        textfile        = ExportToTextfile(self.filename, self.idn, self.measurement_data_table)
+        success         = textfile.WriteToFile()
+        
+        # write message to lineEdit
+        self.data_saved_lineEdit.setEnabled(True)
+        self.data_saved_lineEdit.setReadOnly(False)        
+        self.data_saved_lineEdit.setText(success)
+        self.data_saved_lineEdit.setReadOnly(True)
 
 #%% CLOSE        
     def closeEvent(self, event):
@@ -358,66 +453,6 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         else:
             event.ignore()   
             
-
-#%% IMPORT
-    def ImportData(self):
-        self.export_data_button.        setEnabled(False)
-        
-        
-        openFile        = QtGui.QAction("&Open File", self)
-        openFile.setStatusTip('Open File')
-        openFilename    = QtGui.QFileDialog.getOpenFileName(self,'Open File')
-        file            = open(openFilename, 'r')
-        
-        # split text in lines
-        textlines       = file.read().splitlines()
-        
-        # clear table and set columnCount
-        self.measurement_data_table.    setRowCount(0)
-        self.measurement_data_table.    setColumnCount(4)
-        
-        # enable horzontal header and hide vertical header
-        self.measurement_data_table.verticalHeader().   setVisible(False)
-        self.measurement_data_table.horizontalHeader(). setVisible(True )
-        
-        # write header to table
-        headers = textlines[2].split()
-        for i,header in enumerate(headers):
-            self.measurement_data_table.setHorizontalHeaderItem(i, QtGui.QTableWidgetItem(header))
-        
-        # split lines in columns
-        for line in textlines[3:]:
-            current_line = line.split()            
-            
-            row_count = self.measurement_data_table.rowCount()
-            self.measurement_data_table.insertRow(row_count)
-            
-            self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(current_line[0]))
-            self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem('{} {}'.format(current_line[1],current_line[2])))
-            self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(current_line[3]))
-            self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(current_line[4]))
-            
-#            self.measurement_data_table.scrollToBottom()
-        
-        self.measurement_data_table.resizeColumnsToContents()   
-        # write idn
-        self.idn_textBox.               setEnabled(True)
-        self.idn_textBox.setText(textlines[0].split()[1])            
-#%% Export
-    def ExportToFile(self):
-        
-        # Get filename from lineEdit
-        self.filename   = self.filename_lineEdit.text()
-        
-        # Write to file        
-        textfile        = ExportToTextfile(self.filename, self.idn, self.measurement_data_table)
-        success         = textfile.WriteToFile()
-        
-        # write message to lineEdit
-        self.data_saved_lineEdit.setEnabled(True)
-        self.data_saved_lineEdit.setReadOnly(False)        
-        self.data_saved_lineEdit.setText(success)
-        self.data_saved_lineEdit.setReadOnly(True)
 
 #%% main
 if __name__ == "__main__":
