@@ -67,7 +67,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.nr_of_measurements_spinBox.setEnabled(False)
         self.data_saved_lineEdit.       setEnabled(False)
         self.idn_textBox.               setEnabled(False)
-        self.plot_data_button.          setEnabled(False)
+#        self.plot_data_button.          setEnabled(False)
         
     def Main(self):
         '''Main function contains of all interactive Objects of the GUI.
@@ -100,7 +100,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         # plot data        
 #        self.plot_data_button.clicked.              connect(self.CreatePlotWidget   )
-#        self.measurement_data_table.cellChanged.connect(self.PlotData)
+#        if self.plot_widget:        
+#            self.measurement_data_table.cellChanged.connect(self.PlotData)
 #        QtGui.QTableWidget.cellChanged.connect(self.PlotData)
         # export_data_button
         self.export_data_button.clicked.            connect(self.ExportToFile       )
@@ -203,14 +204,18 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.nr_of_measurements_spinBox.setEnabled(False)
         self.idn_textBox.               setEnabled(False)
         self.import_data_button.        setEnabled(False)
-        self.plot_data_button.          setEnabled(False) 
+#        self.plot_data_button.          setEnabled(False) 
         
         # initialize table attributes
         self.measurement_data_table.    setRowCount(0)
         self.timer_counter = 0
         self.timer.setInterval(self.offset)
         
-       
+        # create plot widget
+        self.CreatePlotWidget()
+#        self.plot_widget.plot([0],[0])
+#        self.plot_widget.plot(range(100), [i*i for i in range(100)])
+#        self.plot_widget.plot(range(100),[i for i in range(100)])
         # get measurement parameters 
         self.channel                = self.GetChannel()
         if self.channel == None: 
@@ -293,24 +298,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         # stop measurement if enough data points
         if self.sample_count == self.timer_counter:
-                
-            # enable all actions except stop_measurement_button            
-            self.stop_measurement_button.   setEnabled(False)
-            self.export_data_button.        setEnabled(True)
-            self.idn_button.                setEnabled(True)
-            self.instruments_comboBox.      setEnabled(True)
-            self.integration_time_comboBox. setEnabled(True)
-            self.start_measurement_button.  setEnabled(True)
-            self.scan_instruments_button.   setEnabled(True)
-            self.channel_1_checkBox.        setEnabled(True)
-            self.channel_2_checkBox.        setEnabled(True)
-            self.nr_of_measurements_spinBox.setEnabled(True)
-            self.idn_textBox.               setEnabled(True)
-            self.import_data_button.        setEnabled(True)
-            self.plot_data_button.          setEnabled(True)
-            
-            # stop measurement            
-            self.timer.stop()
+            self.StopMeasurement()
+
 
     def WriteToTableWidget(self, measurement_data):
         '''Nr. of measurement, Date and Time, and given measurement data will 
@@ -327,6 +316,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.measurement_data_table.setItem(row_count, 0, QtGui.QTableWidgetItem(self.nr_string.format(measurement_nr)))
         self.measurement_data_table.setItem(row_count, 1, QtGui.QTableWidgetItem(measurement_time))
         
+        nr_to_plot          = [int(measurement_nr)]
+        data_to_plot        = [0,0]
         # scroll to bottom
         self.measurement_data_table.scrollToBottom()
        
@@ -334,15 +325,25 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         if self.channel == 1:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data))
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem('-'))
+            data_to_plot[0] = measurement_data
+            data_to_plot[1] = 0
+        
         elif self.channel == 2:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem('-'))
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(measurement_data))
+            data_to_plot[0] = 0
+            data_to_plot[1] = measurement_data
+        
         else:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data[0]))
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(measurement_data[1]))
-     
-           
-            
+            data_to_plot[0] = measurement_data[0]
+            data_to_plot[1] = measurement_data[1]     
+        
+        # plot data
+        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[0])], symbol = 'o')
+        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[1])], symbol = 'x')
+        
     def StopMeasurement(self):
         
         # Enable all actions except stop_measurement_button            
@@ -358,7 +359,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.nr_of_measurements_spinBox.setEnabled(True)        
         self.idn_textBox.               setEnabled(True)
         self.import_data_button.        setEnabled(True)
-        self.plot_data_button.          setEnabled(True)
+#        self.plot_data_button.          setEnabled(True)
         
         # stop measurement
         self.timer.stop()
@@ -383,44 +384,44 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.idn_textBox.setText(device_idn)
 
         # enable plot_data_button
-        self.plot_data_button.          setEnabled(True)   
+#        self.plot_data_button.          setEnabled(True)   
 
 #%% PLOT DATA
     def CreatePlotWidget(self):
         self.plot_widget = pg.PlotWidget()
-        self.plot_widget.show()
-        self.PlotData()        
+        self.plot_widget.show()        
+#        self.PlotData()        
         
-    def PlotData(self):
-        row_count       = self.measurement_data_table.rowCount()
+#    def PlotData(self):
+#        row_count       = self.measurement_data_table.rowCount()
 #        column_count    = self.measurement_data_table.columnCount()
-        nr = np.array([])
-        data_to_plot = np.array([0,0])
-        data_channel_1 = 0
-        data_channel_2 = 0       
-        
-        print("hier")
-        for row in range(row_count):
-            np.append(nr,int(self.measurement_data_table.item(row, 0).text()))
-            
-            data_channel_1 = self.measurement_data_table.item(row, 2).text()
-            data_channel_2 = self.measurement_data_table.item(row, 3).text()
-            
-            if data_channel_1 == '-':
-                np.append(data_to_plot[0],0)
-                np.append(data_to_plot[1],float(data_channel_2))
-                
-            elif data_channel_2 == '-':
-                np.append(data_to_plot[0],float(data_channel_1))
-                np.append(data_to_plot[1],0)
-            
-            else:
-                np.append(data_to_plot[0],float(data_channel_1))
-                np.append(data_to_plot[1],float(data_channel_2))
-
-        
-        # plot        
-        self.plot_widget.plot(nr,data_to_plot[0])
+#        nr              = np.array([])
+#        data_to_plot    = np.array([[0],[0]])
+#        data_channel_1  = 0
+#        data_channel_2  = 0       
+#        
+#        print("hier")
+#        for row in range(row_count):
+#            nr = np.append(nr,int(self.measurement_data_table.item(row, 0).text()))
+#            
+#            data_channel_1 = self.measurement_data_table.item(row, 2).text()
+#            data_channel_2 = self.measurement_data_table.item(row, 3).text()
+#            
+#            if data_channel_1 == '-':
+#                data_to_plot[0] = np.append(data_to_plot[0],0)
+#                data_to_plot[1] = np.append(data_to_plot[1],float(data_channel_2))
+#                
+#            elif data_channel_2 == '-':
+#                data_to_plot = np.append(data_to_plot[0],float(data_channel_1))
+#                data_to_plot = np.append(data_to_plot[1],0)
+#            
+#            else:
+#                data_to_plot = np.append(data_to_plot[0],float(data_channel_1))
+#                data_to_plot = np.append(data_to_plot[1],float(data_channel_2))
+#
+#        print("JETZT")
+#        # plot        
+#        self.plot_widget.plot(nr,data_to_plot)
 #%% Export
     def ExportToFile(self):
         
@@ -447,6 +448,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         # Quit or stay
         if reply == QtGui.QMessageBox.Yes:
+            # stop measurement if still running
+            self.StopMeasurement()            
+            
             # Set instrumets values to default            
             self.instrument.write("*RST")
             event.accept()
