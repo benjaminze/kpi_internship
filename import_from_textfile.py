@@ -6,12 +6,15 @@ returns device_idn
 """
 
 from PyQt4 import QtGui
+from plot_data import PlotData
+
 
 class ImportFromTextfile(QtGui.QTableWidget):
     def __init__(self, file, table):
         self.file       = file
         self.table      = table
-    
+        # create PlotWidget
+        self.plot_widget = PlotData()
     
     def ImportData(self):
          # split text in lines
@@ -30,6 +33,7 @@ class ImportFromTextfile(QtGui.QTableWidget):
         for i,header in enumerate(headers):
             self.table.setHorizontalHeaderItem(i, QtGui.QTableWidgetItem(header))
         
+        
         # split lines in columns
         for line in textlines[3:]:
             current_line = line.split()            
@@ -37,11 +41,20 @@ class ImportFromTextfile(QtGui.QTableWidget):
             row_count = self.table.rowCount()
             self.table.insertRow(row_count)
             
-            self.table.setItem(row_count, 0, QtGui.QTableWidgetItem(current_line[0]))
-            self.table.setItem(row_count, 1, QtGui.QTableWidgetItem('{} {}'.format(current_line[1],current_line[2])))
-            self.table.setItem(row_count, 2, QtGui.QTableWidgetItem(current_line[3]))
-            self.table.setItem(row_count, 3, QtGui.QTableWidgetItem(current_line[4]))
+            # read values
+            nr              = current_line[0]
+            datetime        = '{} {}'.format(current_line[1],current_line[2])
+            data_channel_1  = current_line[3]
+            data_channel_2  = current_line[4]
             
+            # write to table
+            self.table.setItem(row_count, 0, QtGui.QTableWidgetItem(nr))
+            self.table.setItem(row_count, 1, QtGui.QTableWidgetItem(datetime))
+            self.table.setItem(row_count, 2, QtGui.QTableWidgetItem(data_channel_1))
+            self.table.setItem(row_count, 3, QtGui.QTableWidgetItem(data_channel_2))
+            
+            # plot data
+            self.plot_widget.SetDataPoints(nr,[data_channel_1, data_channel_2])
 #            self.table.scrollToBottom()
         
         self.table.resizeColumnsToContents()   
