@@ -390,33 +390,12 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         device_idn      = importFile.ImportData(self.plot_widget)
         
         # write idn
-        self.idn_textBox.               setEnabled(True)
+        self.idn_textBox.setEnabled(True)
         self.idn_textBox.setText(device_idn)
 
         # enable plot_data_button
 #        self.plot_data_button.          setEnabled(True)   
 
-#%% PLOT DATA
-#    def CreatePlotWidget(self):
-#        self.plot_widget = pg.PlotWidget()
-#        self.plot_widget.show()        
-##        self.PlotData()        
-#        
-#    def PlotData(self, nr, data_to_plot, channel=None, time=None):
-#        
-#        nr = [int(nr)]        
-#        symbol_channel_1 = 'o'
-#        symbol_channel_2 = 'x'
-#        
-#        # check if both channels were used
-#        if channel == 1:
-#            self.plot_widget.plot(nr,[float(data_to_plot)],     symbol = symbol_channel_1)
-#        elif channel == 2:
-#            self.plot_widget.plot(nr,[float(data_to_plot)],     symbol = symbol_channel_2)
-#        else:
-#            self.plot_widget.plot(nr,[float(data_to_plot[0])],  symbol = symbol_channel_1)
-#            self.plot_widget.plot(nr,[float(data_to_plot[1])],  symbol = symbol_channel_2)
-        
        
 #%% Export
     def ExportToFile(self):
@@ -451,7 +430,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             self.instrument.write("*RST")
             
             # close plot
-            self.plot_widget.close()
+            self.plot_widget.Close()
             
             event.accept()
         else:
