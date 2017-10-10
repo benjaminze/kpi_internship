@@ -328,7 +328,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem('-'))
 #            data_to_plot[0] = measurement_data
 #            data_to_plot[1] = 0
-            self.plot_widget.SetDataPoints(measurement_nr, measurement_data, channel=1)
+#            self.plot_widget.SetDataPoints(measurement_nr, measurement_data, channel=1)
 #            self.PlotData(measurement_nr, measurement_data, channel=1)
         elif self.channel == 2:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem('-'))
@@ -336,17 +336,17 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #            data_to_plot[0] = 0
 #            data_to_plot[1] = measurement_data
 #            self.PlotData(measurement_nr, measurement_data, channel=2)
-            self.plot_widget.SetDataPoints(measurement_nr, measurement_data, channel=2)
+#            self.plot_widget.SetDataPoints(measurement_nr, measurement_data, channel=2)
         else:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data[0]))
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(measurement_data[1]))
 #            data_to_plot[0] = measurement_data[0]
 #            data_to_plot[1] = measurement_data[1]     
 #            self.PlotData(measurement_nr, measurement_data)
-            self.plot_widget.SetDataPoints(measurement_nr, measurement_data)
-
+#            self.plot_widget.SetDataPoints(measurement_nr, measurement_data)
+            
         # plot data
-
+        self.plot_widget.SetDataPoints(measurement_nr, measurement_data, channel = self.channel)
         
 #        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[0])], symbol = 'o')
 #        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[1])], symbol = 'x')
@@ -382,9 +382,12 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         openFilename    = QtGui.QFileDialog.getOpenFileName(self,'Open File')
         file            = open(openFilename, 'r')
         
+        # create PlotWidget
+        self.plot_widget = PlotData()
+        
         # import data from file
         importFile      = ImportFromTextfile(file, self.measurement_data_table)
-        device_idn      = importFile.ImportData()
+        device_idn      = importFile.ImportData(self.plot_widget)
         
         # write idn
         self.idn_textBox.               setEnabled(True)

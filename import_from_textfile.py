@@ -13,10 +13,10 @@ class ImportFromTextfile(QtGui.QTableWidget):
     def __init__(self, file, table):
         self.file       = file
         self.table      = table
-        # create PlotWidget
-        self.plot_widget = PlotData()
+        
+        
     
-    def ImportData(self):
+    def ImportData(self, plot_widget):
          # split text in lines
         textlines       = self.file.read().splitlines()
         
@@ -54,7 +54,7 @@ class ImportFromTextfile(QtGui.QTableWidget):
             self.table.setItem(row_count, 3, QtGui.QTableWidgetItem(data_channel_2))
             
             # plot data
-            self.plot_widget.SetDataPoints(nr,[data_channel_1, data_channel_2])
+            plot_widget.SetDataPoints(nr,[data_channel_1, data_channel_2])
 #            self.table.scrollToBottom()
         
         self.table.resizeColumnsToContents()   
