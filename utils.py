@@ -4,6 +4,7 @@ Created on Wed Oct 11 12:15:44 2017
 
 @author: 101
 """
+from PyQt4 import QtGui
 
 
 def LayoutPlotWidget(plot_widget):
@@ -25,3 +26,8 @@ def WriteToPlotWidget(plot_widget, nr, data_to_plot, channel=None, time=None, sy
         else:
             plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
             plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
+            
+            
+#%% CLASSES
+            
+#class Progressbar(QtGui.QProgressBar)

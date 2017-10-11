@@ -15,7 +15,7 @@ from export_to_textfile import ExportToTextfile
 from utils import WriteToPlotWidget
 
 
-qtCreatorFile = "measureGUI.ui" # Enter file here.
+qtCreatorFile = "measureGUIGroup.ui" # Enter file here.
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 
@@ -126,7 +126,6 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.instruments_comboBox.clear()
         self.instruments_comboBox.addItems(self.resources)
         
-        self.plot_widget.plot([1,2],[1,2])
         
     def SetDefaultValues(self):      
         

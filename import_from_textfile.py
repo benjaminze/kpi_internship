@@ -18,8 +18,13 @@ class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
         
     
     def ImportData(self):
+                
+        
          # split text in lines
         textlines       = self.file.read().splitlines()
+        
+        # create progressbar
+        
         
         # clear table and set columnCount
         self.table.    setRowCount(0)
@@ -71,6 +76,11 @@ class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
         device_idn = textlines[0].split()[1]
         
         return device_idn
+        
+        
+    
+    
+
         
         
 #    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):
