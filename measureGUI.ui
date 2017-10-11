@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1289</width>
-    <height>699</height>
+    <height>990</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -386,6 +386,16 @@
      <string>Import Data</string>
     </property>
    </widget>
+   <widget class="PlotWidget" name="plot_widget">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>640</y>
+      <width>1171</width>
+      <height>271</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -399,6 +409,13 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PlotWidget</class>
+   <extends>QGraphicsView</extends>
+   <header>pyqtgraph</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

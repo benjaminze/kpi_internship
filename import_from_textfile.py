@@ -6,17 +6,17 @@ returns device_idn
 """
 
 from PyQt4 import QtGui
-from plot_data import PlotData
+#from measurementGUI import WriteToPlotWidget
 
 
-class ImportFromTextfile(QtGui.QTableWidget):
-    def __init__(self, file, table):
-        self.file       = file
-        self.table      = table
-        
+class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
+    def __init__(self, file, table, plot_widget):
+        self.file           = file
+        self.table          = table
+        self.plot_widget    = plot_widget 
         
     
-    def ImportData(self, plot_widget):
+    def ImportData(self):
          # split text in lines
         textlines       = self.file.read().splitlines()
         
@@ -53,8 +53,8 @@ class ImportFromTextfile(QtGui.QTableWidget):
             self.table.setItem(row_count, 2, QtGui.QTableWidgetItem(data_channel_1))
             self.table.setItem(row_count, 3, QtGui.QTableWidgetItem(data_channel_2))
             
-            # plot data
-            plot_widget.SetDataPoints(nr,[data_channel_1, data_channel_2])
+             #plot data
+            self.WriteToPlotWidget(nr,[data_channel_1, data_channel_2])
 #            self.table.scrollToBottom()
         
         self.table.resizeColumnsToContents()   
@@ -62,3 +62,21 @@ class ImportFromTextfile(QtGui.QTableWidget):
         device_idn = textlines[0].split()[1]
         
         return device_idn
+        
+        
+    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):
+        
+        nr      = [int(nr)]        
+        #  check if both channels were used
+        if channel == 1:
+            self.plot_widget.plot(nr ,[float(data_to_plot)],     symbol = symbol_channel_1)
+        elif channel == 2:
+            self.plot_widget.plot(nr, [float(data_to_plot)],     symbol = symbol_channel_2)
+        else:
+            if len(data_to_plot[0]) == 1:
+                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
+            elif len(data_to_plot[1]) == 1:
+                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
+            else:
+                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
+                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)

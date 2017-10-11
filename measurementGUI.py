@@ -52,7 +52,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.filename_lineEdit.setText('myData')
         
         # declare attributes for Plot
-        self.plot_widget            = None
+#        self.plot_widget            = None
                        
 
         
@@ -125,6 +125,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.instruments_comboBox.clear()
         self.instruments_comboBox.addItems(self.resources)
         
+        self.plot_widget.plot([1,2],[1,2])
         
     def SetDefaultValues(self):      
         
@@ -212,8 +213,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.timer_counter = 0
         self.timer.setInterval(self.offset)
         
-        # create plot widget
-        self.plot_widget = PlotData()
+        # clear plot widget
+        self.plot_widget.clear()
 #        self.plot_widget.plot([0],[0])
 #        self.plot_widget.plot(range(100), [i*i for i in range(100)])
 #        self.plot_widget.plot(range(100),[i for i in range(100)])
@@ -267,7 +268,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             # Set timer interval: Must be bigger than device timeout
             self.timer.setInterval(2*(self.integration_time + self.offset))
             
-            measurement_data = ['','']            
+            measurement_data = ['']*2            
             
             # Query 'read' for first channel, device measures
             current_channel     = 1
@@ -328,7 +329,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem('-'))
 #            data_to_plot[0] = measurement_data
 #            data_to_plot[1] = 0
-#            self.plot_widget.SetDataPoints(measurement_nr, measurement_data, channel=1)
+#            self.plot_widget.WriteToPlotWidget(measurement_nr, measurement_data, channel=1)
 #            self.PlotData(measurement_nr, measurement_data, channel=1)
         elif self.channel == 2:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem('-'))
@@ -336,17 +337,17 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #            data_to_plot[0] = 0
 #            data_to_plot[1] = measurement_data
 #            self.PlotData(measurement_nr, measurement_data, channel=2)
-#            self.plot_widget.SetDataPoints(measurement_nr, measurement_data, channel=2)
+#            self.plot_widget.WriteToPlotWidget(measurement_nr, measurement_data, channel=2)
         else:
             self.measurement_data_table.setItem(row_count, 2, QtGui.QTableWidgetItem(measurement_data[0]))
             self.measurement_data_table.setItem(row_count, 3, QtGui.QTableWidgetItem(measurement_data[1]))
 #            data_to_plot[0] = measurement_data[0]
 #            data_to_plot[1] = measurement_data[1]     
 #            self.PlotData(measurement_nr, measurement_data)
-#            self.plot_widget.SetDataPoints(measurement_nr, measurement_data)
+#            self.plot_widget.WriteToPlotWidget(measurement_nr, measurement_data)
             
         # plot data
-        self.plot_widget.SetDataPoints(measurement_nr, measurement_data, channel = self.channel)
+        self.WriteToPlotWidget(measurement_nr, measurement_data, channel = self.channel)
         
 #        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[0])], symbol = 'o')
 #        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[1])], symbol = 'x')
@@ -371,6 +372,23 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # stop measurement
         self.timer.stop()
 
+#%% PLOT
+    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):
+        
+        nr      = [int(nr)]        
+        #  check if both channels were used
+        if channel == 1:
+            self.plot_widget.plot(nr ,[float(data_to_plot)],     symbol = symbol_channel_1)
+        elif channel == 2:
+            self.plot_widget.plot(nr, [float(data_to_plot)],     symbol = symbol_channel_2)
+        else:
+            if len(data_to_plot[0]) == 1:
+                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
+            elif len(data_to_plot[1]) == 1:
+                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
+            else:
+                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
+                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
 
 #%% IMPORT
     def ImportData(self):
@@ -383,11 +401,11 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         file            = open(openFilename, 'r')
         
         # create PlotWidget
-        self.plot_widget = PlotData()
+#        PlotData(self.plot_widget)
         
         # import data from file
-        importFile      = ImportFromTextfile(file, self.measurement_data_table)
-        device_idn      = importFile.ImportData(self.plot_widget)
+        importFile      = ImportFromTextfile(file, self.measurement_data_table, self.plot_widget)
+        device_idn      = importFile.ImportData()
         
         # write idn
         self.idn_textBox.setEnabled(True)
@@ -430,7 +448,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             self.instrument.write("*RST")
             
             # close plot
-            self.plot_widget.Close()
+#            self.plot_widget.Close()
             
             event.accept()
         else:
