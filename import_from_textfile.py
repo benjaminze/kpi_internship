@@ -6,8 +6,9 @@ returns device_idn
 """
 
 from PyQt4 import QtGui
+from collections import OrderedDict
 #from measurementGUI import WriteToPlotWidget
-
+from utils import WriteToPlotWidget
 
 class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
     def __init__(self, file, table, plot_widget):
@@ -42,19 +43,27 @@ class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
             self.table.insertRow(row_count)
             
             # read values
-            nr              = current_line[0]
-            datetime        = '{} {}'.format(current_line[1],current_line[2])
-            data_channel_1  = current_line[3]
-            data_channel_2  = current_line[4]
+            table_conent = OrderedDict([ ('nr',             current_line[0]),
+                                 ('datetime',       '{} {}'.format(current_line[1],current_line[2])),
+                                 ('data_channel_1', current_line[3]),
+                                 ('data_channel_2', current_line[4])])
+            
+#            nr              = current_line[0]
+#            datetime        = '{} {}'.format(current_line[1],current_line[2])
+#            data_channel_1  = current_line[3]
+#            data_channel_2  = current_line[4]
             
             # write to table
-            self.table.setItem(row_count, 0, QtGui.QTableWidgetItem(nr))
-            self.table.setItem(row_count, 1, QtGui.QTableWidgetItem(datetime))
-            self.table.setItem(row_count, 2, QtGui.QTableWidgetItem(data_channel_1))
-            self.table.setItem(row_count, 3, QtGui.QTableWidgetItem(data_channel_2))
+#            self.table.setItem(row_count, 0, QtGui.QTableWidgetItem(nr))
+#            self.table.setItem(row_count, 1, QtGui.QTableWidgetItem(datetime))
+#            self.table.setItem(row_count, 2, QtGui.QTableWidgetItem(data_channel_1))
+#            self.table.setItem(row_count, 3, QtGui.QTableWidgetItem(data_channel_2))
             
-             #plot data
-            self.WriteToPlotWidget(nr,[data_channel_1, data_channel_2])
+            for i,key in enumerate(table_conent):
+                self.table.setItem(row_count, i, QtGui.QTableWidgetItem(table_conent[key]))
+             
+            # plot data
+            WriteToPlotWidget(self.plot_widget,table_conent['nr'],[table_conent['data_channel_1'], table_conent['data_channel_2']])
 #            self.table.scrollToBottom()
         
         self.table.resizeColumnsToContents()   
@@ -64,19 +73,19 @@ class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
         return device_idn
         
         
-    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):
-        
-        nr      = [int(nr)]        
-        #  check if both channels were used
-        if channel == 1:
-            self.plot_widget.plot(nr ,[float(data_to_plot)],     symbol = symbol_channel_1)
-        elif channel == 2:
-            self.plot_widget.plot(nr, [float(data_to_plot)],     symbol = symbol_channel_2)
-        else:
-            if len(data_to_plot[0]) == 1:
-                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
-            elif len(data_to_plot[1]) == 1:
-                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
-            else:
-                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
-                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
+#    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):
+#        
+#        nr      = [int(nr)]        
+#        #  check if both channels were used
+#        if channel == 1:
+#            self.plot_widget.plot(nr ,[float(data_to_plot)],     symbol = symbol_channel_1)
+#        elif channel == 2:
+#            self.plot_widget.plot(nr, [float(data_to_plot)],     symbol = symbol_channel_2)
+#        else:
+#            if len(data_to_plot[0]) == 1:
+#                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
+#            elif len(data_to_plot[1]) == 1:
+#                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
+#            else:
+#                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
+#                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)

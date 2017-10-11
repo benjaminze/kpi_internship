@@ -12,6 +12,7 @@ import pyqtgraph as pg
 from plot_data import PlotData
 from import_from_textfile import ImportFromTextfile
 from export_to_textfile import ExportToTextfile
+from utils import WriteToPlotWidget
 
 
 qtCreatorFile = "measureGUI.ui" # Enter file here.
@@ -347,7 +348,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #            self.plot_widget.WriteToPlotWidget(measurement_nr, measurement_data)
             
         # plot data
-        self.WriteToPlotWidget(measurement_nr, measurement_data, channel = self.channel)
+        WriteToPlotWidget(self.plot_widget, measurement_nr, measurement_data, channel = self.channel)
+        
+            
         
 #        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[0])], symbol = 'o')
 #        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[1])], symbol = 'x')
@@ -373,25 +376,27 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.timer.stop()
 
 #%% PLOT
-    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):
-        
-        nr      = [int(nr)]        
-        #  check if both channels were used
-        if channel == 1:
-            self.plot_widget.plot(nr ,[float(data_to_plot)],     symbol = symbol_channel_1)
-        elif channel == 2:
-            self.plot_widget.plot(nr, [float(data_to_plot)],     symbol = symbol_channel_2)
-        else:
-            if len(data_to_plot[0]) == 1:
-                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
-            elif len(data_to_plot[1]) == 1:
-                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
-            else:
-                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
-                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
+#    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):        
+#        nr      = [int(nr)]        
+#        #  check if both channels were used
+#        if channel == 1:
+#            self.plot_widget.plot(nr ,[float(data_to_plot)],     symbol = symbol_channel_1)
+#        elif channel == 2:
+#            self.plot_widget.plot(nr, [float(data_to_plot)],     symbol = symbol_channel_2)
+#        else:
+#            if len(data_to_plot[0]) == 1:
+#                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
+#            elif len(data_to_plot[1]) == 1:
+#                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
+#            else:
+#                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
+#                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
 
 #%% IMPORT
     def ImportData(self):
+        # clear plot widget
+        self.plot_widget.clear()        
+        
         self.export_data_button.        setEnabled(False)
         
         # choose file and open
@@ -447,8 +452,6 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             # Set instrumets values to default            
             self.instrument.write("*RST")
             
-            # close plot
-#            self.plot_widget.Close()
             
             event.accept()
         else:
