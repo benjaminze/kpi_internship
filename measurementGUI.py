@@ -401,6 +401,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
 #                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
 
+
 #%% IMPORT
     def ImportData(self):
         # clear plot widget and table
