@@ -41,12 +41,22 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.nr_string              = ''
         self.channel                = 0
         
-        # declare attributes for timer 
+        # declare attributes for timer
+        self.offset_default         = 200 #[ms]
         self.timer_counter          = 0
-        self.offset                 = 200 #[ms]
+        self.offset                 = self.offset_default
         self.timer                  = QtCore.QTimer(self)
         self.timer.setInterval(     self.offset)
         self.timer.timeout.connect( self.TimerMeasurement)
+#        
+#        # declare attributes for import timer
+#        self.offsetImport                 = 0 #[ms]
+#        self.timerImport                  = QtCore.QTimer(self)
+#        self.timerImport.setInterval(     self.offsetImport)
+#        self.timerImport.timeout.connect( ImportFromTextfile.TimerImport)
+#            
+        # declare attributes for import
+        self.importFile             = None
         
         # declare attributes for export    
         self.filename               = ''
@@ -208,7 +218,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.import_data_button.        setEnabled(False)
 #        self.plot_data_button.          setEnabled(False) 
         
-        # initialize table attributes
+        # initialize table attributes and timer
         self.measurement_data_table.    setRowCount(0)
         self.timer_counter = 0
         self.timer.setInterval(self.offset)
@@ -371,9 +381,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.import_data_button.        setEnabled(True)
 #        self.plot_data_button.          setEnabled(True)
         
-        # stop measurement
+        # stop measurement, reset timer offset
         self.timer.stop()
-
+        self.offset = self.offset_default
 #%% PLOT
 #    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):        
 #        nr      = [int(nr)]        
@@ -393,10 +403,11 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 
 #%% IMPORT
     def ImportData(self):
-        # clear plot widget
+        # clear plot widget and table
         self.plot_widget.clear()        
+        self.measurement_data_table.    setRowCount(0)
         
-        self.export_data_button.        setEnabled(False)
+        self.export_data_button.setEnabled(False)
         
         # choose file and open
         openFile        = QtGui.QAction("&Open File", self)
@@ -408,17 +419,39 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #        PlotData(self.plot_widget)
         
         # import data from file
-        importFile      = ImportFromTextfile(file, self.measurement_data_table, self.plot_widget)
-        device_idn      = importFile.ImportData()
+        self.importFile      = ImportFromTextfile(file, self.measurement_data_table, self.plot_widget)
+        self.importFile.ReadFile()
+        device_idn = self.importFile.GetDeviceIDN()
         
         # write idn
         self.idn_textBox.setEnabled(True)
         self.idn_textBox.setText(device_idn)
 
-        # enable plot_data_button
-#        self.plot_data_button.          setEnabled(True)   
+        # initialize timer for import
+        self.timer_counter          = self.importFile.timer_counter
+        self.offset                 = 0 #[ms]
+        
+        self.timer.setInterval(     self.offset)
+        self.timer.timeout.connect( self.TimerImport)
 
-       
+        # start timer
+        self.timer.start()        
+        
+        file.close()
+        
+    def TimerImport(self):
+        self.importFile.WriteToTableAndPlot()
+        
+        if self.importFile.timer_counter == self.importFile.last_row_table_content:
+            self.timer.stop()
+            
+            # reset timer parameters
+            self.timer_counter          = 0
+            self.offset                 = self.offset_default
+
+            self.timer.setInterval(     self.offset)
+            self.timer.timeout.connect( self.TimerMeasurement)
+            
 #%% Export
     def ExportToFile(self):
         
