@@ -543,6 +543,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.InitProgressBar(min_value = self.timer_counter,
                              max_value = len(self.importFile.textlines))
 
+        # layout plot widget
+        LayoutPlotWidget(self.plot_widget) 
         
         # start timer
         self.timer.start()        
