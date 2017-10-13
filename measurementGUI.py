@@ -2,17 +2,11 @@ import sys
 from PyQt4 import QtCore, QtGui, uic
 import datetime
 import visa
-import re
-
-import numpy as np
 
 
-import pyqtgraph as pg
-
-from plot_data import PlotData
 from import_from_textfile import ImportFromTextfile
 from export_to_textfile import ExportToTextfile
-from utils import WriteToPlotWidget
+from utils import WriteToPlotWidget, LayoutPlotWidget
 
 
 qtCreatorFile = "measureGUIGroup.ui" # Enter file here.
@@ -24,6 +18,9 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         QtGui.QMainWindow.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
+        
+        self.setWindowTitle('Measurement GUI')
+        self.plot_widget_dockWidget.setWindowTitle('Measurement Plot')
         
         # declare attributes for measurement     
         self.rm                     = None
@@ -44,6 +41,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # declare attributes for timer
         self.offset_default         = 200 #[ms]
         self.timer_counter          = 0
+        self.timer_function         = 'measure' # can be either 'measure' or 'import'                
         self.offset                 = self.offset_default
         self.timer                  = QtCore.QTimer(self)
         self.timer.setInterval(     self.offset)
@@ -65,21 +63,27 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # declare attributes for Plot
 #        self.plot_widget            = None
                        
-
+        self.progressBar.reset()
         
         # Disable all possible actions except scan_instruments_button
-        self.idn_button.                setEnabled(False)
-        self.instruments_comboBox.      setEnabled(False)
-        self.integration_time_comboBox. setEnabled(False)
-        self.start_measurement_button.  setEnabled(False)
-        self.stop_measurement_button.   setEnabled(False)
-        self.export_data_button.        setEnabled(False)
-        self.channel_1_checkBox.        setEnabled(False)
-        self.channel_2_checkBox.        setEnabled(False)
-        self.nr_of_measurements_spinBox.setEnabled(False)
-        self.data_saved_lineEdit.       setEnabled(False)
-        self.idn_textBox.               setEnabled(False)
-#        self.plot_data_button.          setEnabled(False)
+        self.DisableAll(self.scan_instruments_button, self.import_data_button, 
+                        self.filename_lineEdit, self.progressBar)
+
+#        self.idn_button.                setEnabled(False)
+#        self.instruments_comboBox.      setEnabled(False)
+#        self.integration_time_comboBox. setEnabled(False)
+#        self.start_measurement_button.  setEnabled(False)
+#        self.stop_button.               setEnabled(False)
+#        self.export_data_button.        setEnabled(False)
+#        self.channel_1_checkBox.        setEnabled(False)
+#        self.channel_2_checkBox.        setEnabled(False)
+#        self.nr_of_measurements_spinBox.setEnabled(False)
+#        self.data_saved_lineEdit.       setEnabled(False)
+#        self.idn_textBox.               setEnabled(False)
+#
+#        # hide progressBar
+#        self.progressBar.reset()
+#        self.progressBar.setEnabled(False)
         
     def Main(self):
         '''Main function contains of all interactive Objects of the GUI.
@@ -108,13 +112,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.start_measurement_button.clicked.      connect(self.StartMeasurement   )
         
         # stop measurement  
-        self.stop_measurement_button.clicked.       connect(self.StopMeasurement    )
+        self.stop_button.clicked.                   connect(self.StopAction    )
         
-        # plot data        
-#        self.plot_data_button.clicked.              connect(self.CreatePlotWidget   )
-#        if self.plot_widget:        
-#            self.measurement_data_table.cellChanged.connect(self.PlotData)
-#        QtGui.QTableWidget.cellChanged.connect(self.PlotData)
         # export_data_button
         self.export_data_button.clicked.            connect(self.ExportToFile       )
         
@@ -158,12 +157,14 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def GetIDN(self):
         
         # enable buttons for next step
-        self.integration_time_comboBox. setEnabled(True)
-        self.channel_1_checkBox.        setEnabled(True)
-        self.channel_2_checkBox.        setEnabled(True)
-        self.nr_of_measurements_spinBox.setEnabled(True)
-        self.start_measurement_button.  setEnabled(True)
-        self.idn_textBox.               setEnabled(True)
+        self.EnableAll(self.stop_button, self.data_saved_lineEdit, self.export_data_button)       
+        
+#        self.integration_time_comboBox. setEnabled(True)
+#        self.channel_1_checkBox.        setEnabled(True)
+#        self.channel_2_checkBox.        setEnabled(True)
+#        self.nr_of_measurements_spinBox.setEnabled(True)
+#        self.start_measurement_button.  setEnabled(True)
+#        self.idn_textBox.               setEnabled(True)
         
          # Get and print instruments IDN      
         self.idn = self.instrument.query('*IDN?')
@@ -192,46 +193,92 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
             channel = None
         
         return channel
- 
+        
+    def InitProgressBar(self, max_value, min_value = 0):
+        self.progressBar.reset()
+        self.progressBar.setRange(min_value, max_value)
+                
+        
+    def DisplayProgress(self, current_value):
+        self.progressBar.setValue(current_value)
+    
+#%% DISPLAY    
+    def DisableAll(self, *exceptions):
+        self.import_data_button.        setEnabled(False)
+        self.scan_instruments_button.   setEnabled(False)
+        self.idn_button.                setEnabled(False)
+        self.instruments_comboBox.      setEnabled(False)
+        self.integration_time_comboBox. setEnabled(False)
+        self.start_measurement_button.  setEnabled(False)
+        self.stop_button.               setEnabled(False)
+        self.export_data_button.        setEnabled(False)
+        self.channel_1_checkBox.        setEnabled(False)
+        self.channel_2_checkBox.        setEnabled(False)
+        self.nr_of_measurements_spinBox.setEnabled(False)
+        self.data_saved_lineEdit.       setEnabled(False)
+        self.idn_textBox.               setEnabled(False)
+#        self.filename_lineEdit.         setEnabled(False)
+        
+        # hide progressBar
+        self.progressBar.setEnabled(False)
+        
+        for exception in exceptions:
+            exception.setEnabled(True)
+    
+    def EnableAll(self, *exceptions):
+        self.import_data_button.        setEnabled(True)
+        self.scan_instruments_button.   setEnabled(True)
+        self.idn_button.                setEnabled(True)
+        self.instruments_comboBox.      setEnabled(True)
+        self.integration_time_comboBox. setEnabled(True)
+        self.start_measurement_button.  setEnabled(True)
+        self.stop_button.               setEnabled(True)
+        self.export_data_button.        setEnabled(True)
+        self.channel_1_checkBox.        setEnabled(True)
+        self.channel_2_checkBox.        setEnabled(True)
+        self.nr_of_measurements_spinBox.setEnabled(True)
+        self.data_saved_lineEdit.       setEnabled(True)
+        self.idn_textBox.               setEnabled(True)
+        self.filename_lineEdit.         setEnabled(True)
+    
+        for exception in exceptions:
+            exception.setEnabled(False)        
  
 #%% Measurement        
     def StartMeasurement(self):
         '''This function gets all needed data for measurement, initializes instrument and QTableWidget.
         Then timer is started to trigger measurement.        
         '''
-        # enable stop_measurement_button        
-        self.stop_measurement_button.   setEnabled(True)
+        # enable stop_button        
+#        self.stop_button.   setEnabled(True)
         
-        # disable all actions        
+        # disable all actions except stop_button       
+        self.DisableAll(self.stop_button, self.progressBar)        
         self.data_saved_lineEdit.       clear()        
-        self.data_saved_lineEdit.       setEnabled(False)            
-        self.export_data_button.        setEnabled(False)
-        self.idn_button.                setEnabled(False)
-        self.instruments_comboBox.      setEnabled(False)
-        self.integration_time_comboBox. setEnabled(False)
-        self.start_measurement_button.  setEnabled(False)
-        self.scan_instruments_button.   setEnabled(False)
-        self.channel_1_checkBox.        setEnabled(False)
-        self.channel_2_checkBox.        setEnabled(False)
-        self.nr_of_measurements_spinBox.setEnabled(False)
-        self.idn_textBox.               setEnabled(False)
-        self.import_data_button.        setEnabled(False)
+#        self.data_saved_lineEdit.       setEnabled(False)            
+#        self.export_data_button.        setEnabled(False)
+#        self.idn_button.                setEnabled(False)
+#        self.instruments_comboBox.      setEnabled(False)
+#        self.integration_time_comboBox. setEnabled(False)
+#        self.start_measurement_button.  setEnabled(False)
+#        self.scan_instruments_button.   setEnabled(False)
+#        self.channel_1_checkBox.        setEnabled(False)
+#        self.channel_2_checkBox.        setEnabled(False)
+#        self.nr_of_measurements_spinBox.setEnabled(False)
+#        self.idn_textBox.               setEnabled(False)
+#        self.import_data_button.        setEnabled(False)
 #        self.plot_data_button.          setEnabled(False) 
         
-        # initialize table attributes and timer
-        self.measurement_data_table.    setRowCount(0)
-        self.timer_counter = 0
+        # set timer timeout
         self.timer.setInterval(self.offset)
         
         # clear plot widget
         self.plot_widget.clear()
-#        self.plot_widget.plot([0],[0])
-#        self.plot_widget.plot(range(100), [i*i for i in range(100)])
-#        self.plot_widget.plot(range(100),[i for i in range(100)])
+
         # get measurement parameters 
         self.channel                = self.GetChannel()
         if self.channel == None: 
-            self.StopMeasurement(); return     # Stop function if no channel selected
+            self.StopAction(); return     # Stop function if no channel selected
         nplc_index                  = self.integration_time_comboBox.currentIndex()
         nplc                        = self.nplc_list[nplc_index] 
         self.sample_count           = self.nr_of_measurements_spinBox.value()     
@@ -252,8 +299,15 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
          
         # set timeout        
         self.instrument.timeout = int(self.integration_time  + self.offset*0.9)
-
+        
+        # initialize progressBar
+        self.InitProgressBar(self.sample_count)
+        
+        # layout plot widget
+        LayoutPlotWidget(self.plot_widget)        
+        
         # create table
+        self.measurement_data_table.    setRowCount(0)
         self.measurement_data_table.setColumnCount(4)
 
         self.measurement_data_table.verticalHeader().   setVisible(False)
@@ -263,7 +317,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.measurement_data_table.setHorizontalHeaderItem(2, QtGui.QTableWidgetItem('Data_on_Ch_1_[V]'))
         self.measurement_data_table.setHorizontalHeaderItem(3, QtGui.QTableWidgetItem('Data_on_Ch_2_[V]'))
 
-        # Start Measurement, it will be stopped in fct TimerMeasurement or StopMeasurement
+        # Start Measurement, it will be stopped in fct TimerMeasurement or StopAction
         self.timer.start()
         
     
@@ -307,10 +361,13 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         # increase counter
         self.timer_counter += 1        
-        
+
+        # display progress
+        self.DisplayProgress(self.timer_counter)        
+                
         # stop measurement if enough data points
         if self.sample_count == self.timer_counter:
-            self.StopMeasurement()
+            self.StopAction()
 
 
     def WriteToTableWidget(self, measurement_data):
@@ -364,49 +421,50 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[0])], symbol = 'o')
 #        self.plot_widget.plot(nr_to_plot,[float(data_to_plot[1])], symbol = 'x')
         
-    def StopMeasurement(self):
-        
-        # Enable all actions except stop_measurement_button            
-        self.stop_measurement_button.   setEnabled(False)
-        self.export_data_button.        setEnabled(True)
-        self.idn_button.                setEnabled(True)
-        self.instruments_comboBox.      setEnabled(True)
-        self.integration_time_comboBox. setEnabled(True)
-        self.start_measurement_button.  setEnabled(True)
-        self.scan_instruments_button.   setEnabled(True)
-        self.channel_1_checkBox.        setEnabled(True)
-        self.channel_2_checkBox.        setEnabled(True)
-        self.nr_of_measurements_spinBox.setEnabled(True)        
-        self.idn_textBox.               setEnabled(True)
-        self.import_data_button.        setEnabled(True)
-#        self.plot_data_button.          setEnabled(True)
+    def StopAction(self):
         
         # stop measurement, reset timer offset
         self.timer.stop()
-        self.offset = self.offset_default
-#%% PLOT
-#    def WriteToPlotWidget(self, nr, data_to_plot, channel=None, time=None, symbol_channel_1 = 'o', symbol_channel_2 = 'x'):        
-#        nr      = [int(nr)]        
-#        #  check if both channels were used
-#        if channel == 1:
-#            self.plot_widget.plot(nr ,[float(data_to_plot)],     symbol = symbol_channel_1)
-#        elif channel == 2:
-#            self.plot_widget.plot(nr, [float(data_to_plot)],     symbol = symbol_channel_2)
-#        else:
-#            if len(data_to_plot[0]) == 1:
-#                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
-#            elif len(data_to_plot[1]) == 1:
-#                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
-#            else:
-#                self.plot_widget.plot(nr, [float(data_to_plot[0])],  symbol = symbol_channel_1)
-#                self.plot_widget.plot(nr, [float(data_to_plot[1])],  symbol = symbol_channel_2)
+        self.offset                 = self.offset_default
+        self.timer_counter          = 0
+        self.timer.setInterval(     self.offset)
+        self.timer.timeout.connect( self.TimerMeasurement)
+        
+        
+        if self.timer_function == 'import':
+            self.DisableAll(self.idn_textBox, self.import_data_button, self.scan_instruments_button)            
+#            
+#            self.idn_textBox.               setEnabled(True)
+#            self.import_data_button.        setEnabled(True)
+#            self.scan_instruments_button.   setEnabled(True)
+            self.timer_function         = 'measure'
+        else:        
+            # Enable all actions
+            self.EnableAll(self.stop_button, self.data_saved_lineEdit)
+                        
+#            self.export_data_button.        setEnabled(True)
+#            self.idn_button.                setEnabled(True)
+#            self.instruments_comboBox.      setEnabled(True)
+#            self.integration_time_comboBox. setEnabled(True)
+#            self.start_measurement_button.  setEnabled(True)
+#            self.scan_instruments_button.   setEnabled(True)
+#            self.channel_1_checkBox.        setEnabled(True)
+#            self.channel_2_checkBox.        setEnabled(True)
+#            self.nr_of_measurements_spinBox.setEnabled(True)        
+#            self.idn_textBox.               setEnabled(True)
+#            self.import_data_button.        setEnabled(True)
+        
+        # disable stop_button
+#        self.stop_button.               setEnabled(False)
 
+#%% PLOT
 
 #%% IMPORT
     def ImportData(self):
         # clear plot widget and table
         self.plot_widget.clear()        
         self.measurement_data_table.    setRowCount(0)
+                
         
         self.export_data_button.setEnabled(False)
         
@@ -427,14 +485,42 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # write idn
         self.idn_textBox.setEnabled(True)
         self.idn_textBox.setText(device_idn)
+        
+        # enable stop_button
+#        self.stop_button.setEnabled(True)
+
+        
+        # disable all actions        
+        self.data_saved_lineEdit.clear()        
+        self.DisableAll(self.stop_button, self.progressBar)        
+        
+#        self.data_saved_lineEdit.       setEnabled(False)            
+#        self.export_data_button.        setEnabled(False)
+#        self.idn_button.                setEnabled(False)
+#        self.instruments_comboBox.      setEnabled(False)
+#        self.integration_time_comboBox. setEnabled(False)
+#        self.start_measurement_button.  setEnabled(False)
+#        self.scan_instruments_button.   setEnabled(False)
+#        self.channel_1_checkBox.        setEnabled(False)
+#        self.channel_2_checkBox.        setEnabled(False)
+#        self.nr_of_measurements_spinBox.setEnabled(False)
+#        self.idn_textBox.               setEnabled(False)
+#        self.import_data_button.        setEnabled(False)
 
         # initialize timer for import
         self.timer_counter          = self.importFile.timer_counter
         self.offset                 = 0 #[ms]
+        self.timer_function         = 'import'        
         
         self.timer.setInterval(     self.offset)
         self.timer.timeout.connect( self.TimerImport)
+                
 
+        # initialize progressBar
+        self.InitProgressBar(min_value = self.timer_counter,
+                             max_value = len(self.importFile.textlines))
+
+        
         # start timer
         self.timer.start()        
         
@@ -443,15 +529,16 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def TimerImport(self):
         self.importFile.WriteToTableAndPlot()
         
-        if self.importFile.timer_counter == self.importFile.last_row_table_content:
-            self.timer.stop()
+        current_value = self.importFile.timer_counter
+        
+        # display progress
+        self.DisplayProgress(current_value)
+        
+        if  current_value == self.importFile.last_row_table_content:
+            self.StopAction()
             
             # reset timer parameters
-            self.timer_counter          = 0
-            self.offset                 = self.offset_default
-
-            self.timer.setInterval(     self.offset)
-            self.timer.timeout.connect( self.TimerMeasurement)
+            
             
 #%% Export
     def ExportToFile(self):
@@ -480,7 +567,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         # Quit or stay
         if reply == QtGui.QMessageBox.Yes:
             # stop measurement if still running
-            self.StopMeasurement()            
+            self.StopAction()            
             
             # Set instrumets values to default            
             self.instrument.write("*RST")

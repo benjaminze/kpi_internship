@@ -1,0 +1,4 @@
+IDN: HEWLETT-PACKARD,34420A,0,9.0-5.0-2.0
+ 
+Nr.  Date                   Data_on_Ch_1_[V]   Data_on_Ch_2_[V]
+1    2017-10-13 12:22:44    +4.20910000E+00    -    
