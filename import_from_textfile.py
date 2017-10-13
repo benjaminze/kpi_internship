@@ -20,7 +20,7 @@ class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
         self.first_row_table_content  = 3
         self.last_row_table_content   = 0 #changed in ImportData
         # timerImport for import
-        self.timer_counter = self.first_row_table_content
+        self.timer_counter_import = self.first_row_table_content
         
          # clear table and set columnCount
         self.table.setRowCount(0)
@@ -49,7 +49,7 @@ class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
     def WriteToTableAndPlot(self):
             
             
-        current_line = self.textlines[self.timer_counter].split()            
+        current_line = self.textlines[self.timer_counter_import].split()            
         
         row_count = self.table.rowCount()
         self.table.insertRow(row_count)
@@ -72,5 +72,5 @@ class ImportFromTextfile(QtGui.QTableWidget, QtGui.QGraphicsView):
     
   
     
-        self.timer_counter += 1
+        self.timer_counter_import += 1
     

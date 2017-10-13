@@ -40,12 +40,14 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         # declare attributes for timer
         self.offset_default         = 200 #[ms]
+        
         self.timer_counter          = 0
-        self.timer_function         = 'measure' # can be either 'measure' or 'import'                
-        self.offset                 = self.offset_default
-        self.timer                  = QtCore.QTimer(self)
-        self.timer.setInterval(     self.offset)
-        self.timer.timeout.connect( self.TimerMeasurement)
+        self.timer_function         = '' # can be either 'measure' or 'import'                
+        self.offset                 = 0
+        self.timer                  = None
+#        self.timer.setInterval(     self.offset)
+#        self.timer.timeout.connect( self.TimerMeasurement)
+        self.TimerInit()
 #        
 #        # declare attributes for import timer
 #        self.offsetImport                 = 0 #[ms]
@@ -174,7 +176,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def GetIntegrationTime(self, index):
         
         # chosen integration_time has changed
-        self.integration_time = int(self.integration_time_comboBox.currentText())
+        self.integration_time = float(self.integration_time_comboBox.currentText())
         
         
     def GetChannel(self):
@@ -285,7 +287,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.digits_sample_count    = len(str(self.sample_count))
         self.nr_string              = '{}{}{}'.format('{:', str(self.digits_sample_count), '}')
         
-        
+        print(self.integration_time)
 
         # write channel to instrument if only one is chosen
         if not self.channel == 12:
@@ -425,10 +427,10 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         
         # stop measurement, reset timer offset
         self.timer.stop()
-        self.offset                 = self.offset_default
-        self.timer_counter          = 0
-        self.timer.setInterval(     self.offset)
-        self.timer.timeout.connect( self.TimerMeasurement)
+#        self.offset                 = self.offset_default
+#        self.timer_counter          = 0
+#        self.timer.setInterval(     self.offset)
+#        self.timer.timeout.connect( self.TimerMeasurement)
         
         
         if self.timer_function == 'import':
@@ -437,7 +439,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #            self.idn_textBox.               setEnabled(True)
 #            self.import_data_button.        setEnabled(True)
 #            self.scan_instruments_button.   setEnabled(True)
-            self.timer_function         = 'measure'
+            
         else:        
             # Enable all actions
             self.EnableAll(self.stop_button, self.data_saved_lineEdit)
@@ -454,11 +456,30 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #            self.idn_textBox.               setEnabled(True)
 #            self.import_data_button.        setEnabled(True)
         
+        self.TimerInit()
         # disable stop_button
 #        self.stop_button.               setEnabled(False)
-
-#%% PLOT
-
+#%% TIMER
+    def TimerInit(self, task = 'init', timer_counter = 0):
+        # init
+        if task == 'init':
+            self.timer_counter          = timer_counter
+            self.timer_function         = 'measure' # can be either 'measure' or 'import'                
+            self.offset                 = self.offset_default
+            self.timer                  = QtCore.QTimer(self)
+            self.timer.setInterval(     self.offset)
+            self.timer.timeout.connect( self.TimerMeasurement)
+    
+        # measure
+    
+        # import
+        elif task == 'import':
+            self.timer_counter          = timer_counter
+            self.offset                 = 0 #[ms]
+            self.timer_function         = task        
+            
+            self.timer.setInterval(     self.offset)
+            self.timer.timeout.connect( self.TimerImport)
 #%% IMPORT
     def ImportData(self):
         # clear plot widget and table
@@ -508,14 +529,16 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
 #        self.import_data_button.        setEnabled(False)
 
         # initialize timer for import
-        self.timer_counter          = self.importFile.timer_counter
-        self.offset                 = 0 #[ms]
-        self.timer_function         = 'import'        
-        
-        self.timer.setInterval(     self.offset)
-        self.timer.timeout.connect( self.TimerImport)
+#        self.timer_counter          = self.importFile.timer_counter_import
+#        self.offset                 = 0 #[ms]
+#        self.timer_function         = 'import'        
+#        
+#        self.timer.setInterval(     self.offset)
+#        self.timer.timeout.connect( self.TimerImport)
                 
-
+        # initialize timer for import
+        self.TimerInit('import', self.importFile.timer_counter_import)                
+        
         # initialize progressBar
         self.InitProgressBar(min_value = self.timer_counter,
                              max_value = len(self.importFile.textlines))
@@ -529,7 +552,7 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def TimerImport(self):
         self.importFile.WriteToTableAndPlot()
         
-        current_value = self.importFile.timer_counter
+        current_value = self.importFile.timer_counter_import
         
         # display progress
         self.DisplayProgress(current_value)
